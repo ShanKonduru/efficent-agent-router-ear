@@ -155,16 +155,6 @@ Workspace configuration is stored in .vscode/mcp.json.
 - M5: Execution runtime and adaptive routing intelligence (planned)
 - M6: Leadership/investor demo frontend (in progress)
 
-## Release Workflow
-
-A single command handles the full release cycle (version bump → commit → push → tag → push tag):
-
-```bash
-python release.py 0.11.0 "Add LiteLLM execution runtime"
-```
-
-The script validates the version format, ensures the working tree is clean, bumps `pyproject.toml`, commits, pushes `master` and `main`, creates an annotated tag, and pushes the tag. GitHub Actions picks up the tag and publishes to PyPI automatically.
-
 ## Contributing Expectations
 - Preserve clean architecture boundaries.
 - Add tests for every logic branch touched.
