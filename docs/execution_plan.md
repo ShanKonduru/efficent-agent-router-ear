@@ -16,6 +16,13 @@
 7. MCP Server and Tool Exposure
 8. CI/CD and Security Automation (`[~]`)
 
+## Recommended Execution Order (Current State)
+1. E4 CLI
+2. E6 Guardrails
+3. E7 Metrics
+4. E8 MCP
+5. CI hardening and branch alignment
+
 ## User Stories, Tasks, and Estimates
 
 ### F1. Model Registry and Metadata Management

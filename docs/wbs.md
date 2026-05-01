@@ -293,12 +293,10 @@ Track delivery using the status column for every item.
 
 ## Priority Order for Development
 
-1. E1 — Foundation (unblocks everything)
-2. E2 — Registry (unblocks router)
-3. E3 — Routing Engine (core value)
-4. E5 — Fallback Reliability (required for E4 to be stable)
-5. E4 — CLI (validates Phase 1 end-to-end)
-6. E6 — Guardrails (security gate before any production use)
-7. E7 — Observability (operational visibility)
-8. E9 — CI/CD (automates quality gates)
-9. E8 — MCP Server (Phase 2, unlocked after CLI validation)
+From the current project state, the active execution order is:
+
+1. E4 — CLI Experience and Operator Workflow
+2. E6 — Safety and Guardrails
+3. E7 — Observability and Cost/Latency Metrics
+4. E8 — MCP Server and Tool Exposure
+5. CI hardening and branch alignment
