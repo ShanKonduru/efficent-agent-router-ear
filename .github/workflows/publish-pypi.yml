@@ -16,8 +16,9 @@ name: Publish - PyPI (Production Release)
 on:
   push:
     tags:
-      # Only stable tags trigger PyPI (no alpha/beta/rc/dev suffix)
-      - "v[0-9]+.[0-9]+.[0-9]+"
+      # Only version-like tags trigger PyPI. Final validation happens in verify-version-tag.
+      - "v*.*.*"
+      - "*.*.*"
   workflow_dispatch:
     inputs:
       dry_run:
@@ -46,15 +47,23 @@ jobs:
         id: verify
         shell: bash
         run: |
-          if [[ "${GITHUB_REF}" != refs/tags/v* ]]; then
+          if [[ "${GITHUB_REF}" != refs/tags/* ]]; then
             echo "version_match=false" >> "$GITHUB_OUTPUT"
             echo "project_version=" >> "$GITHUB_OUTPUT"
             echo "tag_version=" >> "$GITHUB_OUTPUT"
-            echo "This workflow publishes only from version tags (vX.Y.Z)."
+            echo "This workflow publishes only from version tags (X.Y.Z or vX.Y.Z)."
             exit 1
           fi
 
           TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [[ ! "${TAG_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "version_match=false" >> "$GITHUB_OUTPUT"
+            echo "project_version=" >> "$GITHUB_OUTPUT"
+            echo "tag_version=${TAG_VERSION}" >> "$GITHUB_OUTPUT"
+            echo "Tag must be semantic version X.Y.Z or vX.Y.Z."
+            exit 1
+          fi
+
           PROJECT_VERSION=$(python - <<'PY'
           import tomllib
           with open("pyproject.toml", "rb") as f:
@@ -143,7 +152,7 @@ jobs:
           retention-days: 90
 
       - name: Publish to PyPI (OIDC — preferred)
-        if: ${{ github.event.inputs.dry_run != 'true' && needs.verify-version-tag.outputs.version_match == 'true' }}
+        if: ${{ github.event.inputs.dry_run != 'true' && needs['verify-version-tag'].outputs.version_match == 'true' }}
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           verbose: true
@@ -156,7 +165,7 @@ jobs:
       # Create a GitHub Release with the built assets attached
       # --------------------------------------------------------------------------
       - name: Create GitHub Release
-        if: ${{ github.event.inputs.dry_run != 'true' && needs.verify-version-tag.outputs.version_match == 'true' }}
+        if: ${{ github.event.inputs.dry_run != 'true' && needs['verify-version-tag'].outputs.version_match == 'true' }}
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*
