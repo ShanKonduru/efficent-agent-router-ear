@@ -1,0 +1,115 @@
+name: Release Preflight
+
+"on":
+  push:
+    tags:
+      - "v*.*.*"
+      - "*.*.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Optional tag to validate (X.Y.Z or vX.Y.Z); defaults to current ref name"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    name: Validate release assumptions
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Resolve tag to validate
+        id: tag
+        shell: bash
+        run: |
+          INPUT_TAG="${{ github.event.inputs.tag }}"
+          if [[ -n "${INPUT_TAG}" ]]; then
+            TAG_RAW="${INPUT_TAG}"
+          else
+            TAG_RAW="${GITHUB_REF_NAME}"
+          fi
+
+          TAG_VERSION="${TAG_RAW#v}"
+
+          echo "tag_raw=${TAG_RAW}" >> "$GITHUB_OUTPUT"
+          echo "tag_version=${TAG_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Validate tag format
+        shell: bash
+        run: |
+          TAG_VERSION="${{ steps.tag.outputs.tag_version }}"
+          if [[ ! "${TAG_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid tag format: '${{ steps.tag.outputs.tag_raw }}'"
+            echo "Expected X.Y.Z or vX.Y.Z"
+            exit 1
+          fi
+
+      - name: Validate pyproject version matches tag
+        shell: bash
+        run: |
+          TAG_VERSION="${{ steps.tag.outputs.tag_version }}"
+          PROJECT_VERSION=$(python - <<'PY'
+          import tomllib
+          with open("pyproject.toml", "rb") as f:
+              data = tomllib.load(f)
+          print(data["project"]["version"])
+          PY
+          )
+
+          echo "Tag version: ${TAG_VERSION}"
+          echo "Project version: ${PROJECT_VERSION}"
+
+          if [[ "${PROJECT_VERSION}" != "${TAG_VERSION}" ]]; then
+            echo "Version mismatch: tag=${TAG_VERSION}, pyproject=${PROJECT_VERSION}"
+            exit 1
+          fi
+
+      - name: Validate repository naming assumption
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REPOSITORY}" != "ShanKonduru/efficient-agent-router-ear" ]]; then
+            echo "Repository mismatch for trusted publishing assumptions."
+            echo "Expected: ShanKonduru/efficient-agent-router-ear"
+            echo "Actual:   ${GITHUB_REPOSITORY}"
+            exit 1
+          fi
+
+      - name: Validate publish workflow OIDC/env settings
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          pypi_wf = Path('.github/workflows/publish-pypi.yml').read_text(encoding='utf-8')
+          testpypi_wf = Path('.github/workflows/publish-testpypi.yml').read_text(encoding='utf-8')
+
+          required_checks = [
+              ('publish-pypi.yml', 'id-token: write' in pypi_wf),
+              ('publish-pypi.yml', 'environment: pypi' in pypi_wf),
+              ('publish-testpypi.yml', 'id-token: write' in testpypi_wf),
+              ('publish-testpypi.yml', 'environment: testpypi' in testpypi_wf),
+          ]
+
+          failed = [name for name, ok in required_checks if not ok]
+          if failed:
+              raise SystemExit('Missing required publish workflow assumptions: ' + ', '.join(failed))
+
+          print('Preflight workflow assumptions verified.')
+          PY
+
+      - name: Summary
+        shell: bash
+        run: |
+          echo "Release preflight passed for tag: ${{ steps.tag.outputs.tag_raw }}"
+          echo "Normalized version: ${{ steps.tag.outputs.tag_version }}"
