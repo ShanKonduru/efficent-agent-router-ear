@@ -17,6 +17,7 @@ This playbook covers:
 - Allowed release tag formats: `X.Y.Z` and `vX.Y.Z`
 - Production publish target: PyPI project `efficient-agent-router-ear`
 - Test publish target: TestPyPI project `efficient-agent-router-ear`
+- Branch policy: `master` is canonical and `main` is mirrored for compatibility.
 
 ## Prerequisites
 
@@ -65,6 +66,7 @@ Before cutting a release, confirm all of the following:
    - `git commit -m "chore(release): bump version to X.Y.Z"`
 2. Push branch:
    - `git push origin master`
+   - `git push origin master:main`
 3. Create and push release tag:
    - `git tag -a X.Y.Z -m "Release X.Y.Z"`
    - `git push origin X.Y.Z`
@@ -81,6 +83,9 @@ Before cutting a release, confirm all of the following:
 3. Verify install path:
    - `pip install efficient-agent-router-ear==X.Y.Z`
 4. Verify release page has artifacts attached.
+5. Verify security workflow artifacts contain:
+   - `security_reports/pip_audit_latest.html`
+   - `security_reports/trivy_latest.html`
 
 ## Troubleshooting Guide
 

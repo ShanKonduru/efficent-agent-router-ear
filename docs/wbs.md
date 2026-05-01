@@ -270,6 +270,7 @@ Track delivery using the status column for every item.
 - Given a PR is opened, when CI runs, then pytest must pass with 100% coverage or the build fails.
 - Given a PR is opened, when CI runs, then `bandit -r src/` and `pip-audit` must both exit cleanly or the build fails.
 - Given a PR introduces a dependency with a known CVE, when `pip-audit` runs, then the build breaks with the CVE listed.
+- Given security workflows run, when sec-report-kit rendering completes, then HTML reports exist as workflow artifacts for both pip-audit and trivy.
 
 | Task ID | Task | Sub-tasks | Priority | Points | Status |
 | --- | --- | --- | --- | --- | --- |
@@ -293,10 +294,8 @@ Track delivery using the status column for every item.
 
 ## Priority Order for Development
 
-From the current project state, the active execution order is:
+From the current project state, the remaining execution order is:
 
-1. E4 — CLI Experience and Operator Workflow
-2. E6 — Safety and Guardrails
-3. E7 — Observability and Cost/Latency Metrics
-4. E8 — MCP Server and Tool Exposure
-5. CI hardening and branch alignment
+1. E9 — CI/CD forced-failure validation (T8.3)
+2. Security policy clean-up (remove temporary pip-audit CVE ignore when upstream fix is available)
+3. Release notes and release artifact governance updates

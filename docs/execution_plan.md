@@ -17,11 +17,9 @@
 8. CI/CD and Security Automation (`[~]`)
 
 ## Recommended Execution Order (Current State)
-1. E4 CLI
-2. E6 Guardrails
-3. E7 Metrics
-4. E8 MCP
-5. CI hardening and branch alignment
+1. E9 forced-failure validation (T8.3)
+2. Security policy cleanup (temporary CVE ignore review/removal)
+3. Release readiness documentation pass
 
 ## User Stories, Tasks, and Estimates
 
@@ -108,11 +106,13 @@
 - Acceptance highlights:
   - Run tests with enforced 100% coverage.
   - Run bandit and pip-audit on every PR.
+  - Produce HTML security reports (pip-audit and trivy) via sec-report-kit in workflow artifacts.
   - Fail pipeline on any quality gate failure.
 - Tasks:
   - T8.1 Add GitHub Actions workflow (2 pts) `[x]`
   - T8.2 Configure coverage and security thresholds (1 pt) `[x]`
   - T8.3 Validate workflow with sample failure case (1 pt) `[ ]`
+  - T8.4 Verify ongoing branch synchronization policy for `master` and `main` (1 pt) `[x]`
 
 ## Milestones
 

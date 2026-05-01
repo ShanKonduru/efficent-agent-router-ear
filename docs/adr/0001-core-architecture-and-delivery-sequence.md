@@ -72,6 +72,6 @@ The project needed early decisions on async runtime, CLI framework, and delivery
 - Rejected to avoid duplicating unstable routing interfaces across two transports.
 
 ## Follow-Up Actions
-1. Implement project skeleton matching this ADR.
-2. Add CI workflow with coverage and security gates.
-3. Add ADR updates for future major architecture shifts.
+1. Implement project skeleton matching this ADR. `[x]`
+2. Add CI workflow with coverage and security gates. `[x]`
+3. Add ADR updates for future major architecture shifts. `[~]`
