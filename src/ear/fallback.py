@@ -1,9 +1,10 @@
 """Fallback pipeline — retries transient failures and cascades to next candidate."""
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Awaitable, Callable
 
 from ear.models import RoutingDecision
 
@@ -55,9 +56,11 @@ class FallbackResult:
 class FailureClassifier:
     """Determines whether a provider error is transient or fatal."""
 
-    def is_transient(self, error: ProviderError) -> bool:
+    def is_transient(self, error: Exception) -> bool:
         """Return True if the error warrants a retry or cascade."""
-        raise NotImplementedError
+        if isinstance(error, ProviderError):
+            return error.status_code in TRANSIENT_STATUS_CODES
+        return isinstance(error, (asyncio.TimeoutError, TimeoutError))
 
 
 class FallbackPipeline:
@@ -67,9 +70,24 @@ class FallbackPipeline:
         self,
         max_retries: int = 3,
         classifier: FailureClassifier | None = None,
+        base_backoff_seconds: float = 0.1,
+        max_backoff_seconds: float = 2.0,
+        sleep_func: Callable[[float], Awaitable[None]] | None = None,
     ) -> None:
+        if max_retries < 0:
+            raise ValueError("max_retries must be >= 0")
+        if base_backoff_seconds < 0:
+            raise ValueError("base_backoff_seconds must be >= 0")
+        if max_backoff_seconds < 0:
+            raise ValueError("max_backoff_seconds must be >= 0")
+        if base_backoff_seconds > max_backoff_seconds:
+            raise ValueError("base_backoff_seconds must be <= max_backoff_seconds")
+
         self._max_retries = max_retries
         self._classifier = classifier or FailureClassifier()
+        self._base_backoff_seconds = base_backoff_seconds
+        self._max_backoff_seconds = max_backoff_seconds
+        self._sleep = sleep_func or asyncio.sleep
 
     async def execute(
         self,
@@ -80,7 +98,66 @@ class FallbackPipeline:
 
         Raises AllCandidatesExhausted if every candidate fails.
         """
-        raise NotImplementedError
+        attempts: list[FallbackAttempt] = []
+        candidates = self._build_candidate_chain(decision)
+
+        for model_id in candidates:
+            retry_index = 0
+            while True:
+                try:
+                    response = await self._call_model(model_id, prompt)
+                    attempts.append(FallbackAttempt(model_id=model_id, success=True))
+                    return FallbackResult(
+                        model_used=model_id,
+                        response=response,
+                        attempts=attempts,
+                        succeeded=True,
+                    )
+                except Exception as error:  # noqa: BLE001
+                    attempts.append(
+                        FallbackAttempt(
+                            model_id=model_id,
+                            success=False,
+                            error=str(error),
+                        )
+                    )
+
+                    transient = self._classifier.is_transient(error)
+                    should_retry = transient and retry_index < self._max_retries
+                    if not should_retry:
+                        logger.warning(
+                            "Model '%s' failed (%s). Cascading to next candidate.",
+                            model_id,
+                            type(error).__name__,
+                        )
+                        break
+
+                    retry_index += 1
+                    backoff_seconds = min(
+                        self._base_backoff_seconds * (2 ** (retry_index - 1)),
+                        self._max_backoff_seconds,
+                    )
+                    logger.info(
+                        "Transient failure from '%s'; retry %s/%s in %.3fs.",
+                        model_id,
+                        retry_index,
+                        self._max_retries,
+                        backoff_seconds,
+                    )
+                    await self._sleep(backoff_seconds)
+
+        raise AllCandidatesExhausted([attempt.model_id for attempt in attempts])
+
+    @staticmethod
+    def _build_candidate_chain(decision: RoutingDecision) -> list[str]:
+        """Return selected model followed by de-duplicated fallback chain."""
+        chain: list[str] = []
+        seen: set[str] = set()
+        for model_id in [decision.selected_model, *decision.fallback_chain]:
+            if model_id not in seen:
+                seen.add(model_id)
+                chain.append(model_id)
+        return chain
 
     async def _call_model(self, model_id: str, prompt: str) -> Any:
         """Send the prompt to a specific model and return the raw response."""
