@@ -13,14 +13,22 @@ setlocal EnableDelayedExpansion
 
 set REPORTS_DIR=security_reports
 set SCAN_TARGET=.
+set IGNOREFILE_ARG=
+set SCANNERS=vuln,misconfig
+set SKIP_ARGS=--skip-dirs .venv --skip-dirs .git --skip-dirs coverage_reports --skip-dirs security_reports
 
 :: Check trivy is available
 where trivy >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
-    echo [ERROR] trivy not found on PATH.
-    echo         Install via: winget install AquaSecurity.Trivy
-    echo         Or download from: https://github.com/aquasecurity/trivy/releases
-    exit /b 1
+    set WINGET_TRIVY=%LOCALAPPDATA%\Microsoft\WinGet\Packages\AquaSecurity.Trivy_Microsoft.Winget.Source_8wekyb3d8bbwe
+    if exist "!WINGET_TRIVY!\trivy.exe" (
+        set "PATH=!WINGET_TRIVY!;%PATH%"
+    ) else (
+        echo [ERROR] trivy not found on PATH.
+        echo         Install via: winget install AquaSecurity.Trivy
+        echo         Or download from: https://github.com/aquasecurity/trivy/releases
+        exit /b 1
+    )
 )
 
 if not exist "%REPORTS_DIR%" mkdir "%REPORTS_DIR%"
@@ -30,10 +38,13 @@ for /f "tokens=2 delims==" %%I in ('wmic os get localdatetime /value 2^>nul') do
 set TIMESTAMP=%DT:~0,8%_%DT:~8,6%
 
 set REPORT_JSON=%REPORTS_DIR%\trivy_%TIMESTAMP%.json
-set REPORT_SARIF=%REPORTS_DIR%\trivy_%TIMESTAMP%.sarif
-set REPORT_TABLE=%REPORTS_DIR%\trivy_%TIMESTAMP%.txt
 set LATEST_JSON=%REPORTS_DIR%\trivy_latest.json
-set LATEST_SARIF=%REPORTS_DIR%\trivy_latest.sarif
+
+if exist ".trivyignore" (
+    set "IGNOREFILE_ARG=--ignorefile .trivyignore"
+) else (
+    echo [INFO] .trivyignore not found - scanning all files.
+)
 
 echo.
 echo ============================================================
@@ -41,52 +52,24 @@ echo  Running Trivy filesystem scan on: %SCAN_TARGET%
 echo ============================================================
 echo.
 
-:: Table format to console for readability
-trivy fs ^
-    --exit-code 0 ^
-    --scanners vuln,misconfig,secret ^
-    --severity HIGH,CRITICAL ^
-    --ignorefile .trivyignore 2>nul || echo (no .trivyignore found — scanning all) ^
-    --format table ^
-    %SCAN_TARGET% %*
-
-:: JSON report (machine-readable, for archiving)
+:: JSON report (machine-readable, for archiving and CI gating)
 trivy fs ^
     --exit-code 1 ^
-    --scanners vuln,misconfig,secret ^
+    --scanners %SCANNERS% ^
     --severity HIGH,CRITICAL ^
+    !IGNOREFILE_ARG! ^
+    %SKIP_ARGS% ^
     --format json ^
     --output "%REPORT_JSON%" ^
-    %SCAN_TARGET%
+    %SCAN_TARGET% %*
 set TRIVY_EXIT=%ERRORLEVEL%
 
-:: SARIF report (for GitHub Code Scanning / Security tab upload)
-trivy fs ^
-    --exit-code 0 ^
-    --scanners vuln,misconfig,secret ^
-    --severity HIGH,CRITICAL ^
-    --format sarif ^
-    --output "%REPORT_SARIF%" ^
-    %SCAN_TARGET% 2>nul
-
-:: Table report saved to file as well
-trivy fs ^
-    --exit-code 0 ^
-    --scanners vuln,misconfig,secret ^
-    --severity HIGH,CRITICAL ^
-    --format table ^
-    --output "%REPORT_TABLE%" ^
-    %SCAN_TARGET% 2>nul
-
 copy /Y "%REPORT_JSON%"  "%LATEST_JSON%"  >nul 2>&1
-copy /Y "%REPORT_SARIF%" "%LATEST_SARIF%" >nul 2>&1
 
 echo.
 echo ============================================================
 echo  Trivy reports written to %REPORTS_DIR%\
 echo    JSON  : %REPORT_JSON%
-echo    SARIF : %REPORT_SARIF%
-echo    Table : %REPORT_TABLE%
 if %TRIVY_EXIT% EQU 0 (
     echo  Status: No HIGH/CRITICAL findings.
 ) else (
