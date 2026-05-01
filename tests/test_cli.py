@@ -41,5 +41,9 @@ class TestCliModule:
     def test_module_main_entrypoint_executes(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(sys, "argv", ["ear"])
 
+        # Ensure runpy executes a fresh module object to avoid RuntimeWarning
+        # when warning filters are strict in CI.
+        sys.modules.pop("ear.cli", None)
+
         with pytest.raises(SystemExit):
             runpy.run_module("ear.cli", run_name="__main__")
