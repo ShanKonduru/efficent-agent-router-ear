@@ -28,7 +28,7 @@ Track delivery using the status column for every item.
 | E6 | Safety and Guardrails | P2 | 9 | M3 | `[x]` |
 | E7 | Observability and Cost/Latency Metrics | P2 | 5 | M3 | `[x]` |
 | E8 | MCP Server and Tool Exposure | P3 | 8 | M4 | `[x]` |
-| E9 | CI/CD and Security Automation | P2 | 4 | M4 | `[~]` |
+| E9 | CI/CD and Security Automation | P2 | 4 | M4 | `[x]` |
 | | **Total** | | **68** | | |
 
 ---
@@ -40,7 +40,7 @@ Track delivery using the status column for every item.
 | M1 — Foundation and Registry | Week 1 | E1, E2 | Skeleton merged; registry client and cache tested | `[x]` |
 | M2 — Router Core and CLI | Week 2–3 | E3, E4, E5 | `ear route` command stable; fallback tested; routing at 100% coverage | `[x]` |
 | M3 — Guardrails and Observability | Week 4 | E6, E7 | Injection and PII policy enforced; metrics reporting available | `[x]` |
-| M4 — MCP and Automation | Week 5 | E8, E9 | MCP tool live; CI pipeline gates passing | `[~]` |
+| M4 — MCP and Automation | Week 5 | E8, E9 | MCP tool live; CI pipeline gates passing | `[x]` |
 
 ---
 

@@ -102,7 +102,7 @@
   - T7.3 Add MCP integration tests (3 pts) `[x]`
 
 ### F8. CI/CD and Security Automation
-- Story US-8 (3 pts) `[~]`: As a maintainer, I want automated checks to prevent regressions and vulnerabilities.
+- Story US-8 (3 pts) `[x]`: As a maintainer, I want automated checks to prevent regressions and vulnerabilities.
 - Acceptance highlights:
   - Run tests with enforced 100% coverage.
   - Run bandit and pip-audit on every PR.
