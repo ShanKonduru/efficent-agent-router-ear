@@ -46,7 +46,9 @@ class TestRegistryClientInit:
     ) -> None:  # type: ignore[no-untyped-def]
         client = RegistryClient(config)
         client._cache = [sample_llm_spec]
-        client._fetched_at = 0.0
+        # Use an explicit TTL-relative timestamp so cache is stale regardless of
+        # the host monotonic clock origin (varies across CI runners).
+        client._fetched_at = time.monotonic() - float(config.ear_registry_ttl_seconds) - 1.0
 
         fetch_mock = AsyncMock(side_effect=RuntimeError("provider down"))
         client._fetch_models = fetch_mock  # type: ignore[method-assign]
