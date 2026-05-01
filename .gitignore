@@ -30,7 +30,11 @@ ENV/
 .coverage.*
 coverage.xml
 htmlcov/
+coverage_reports/
 *.log
+
+# Security scan reports (generated locally and by CI — never commit)
+security_reports/
 
 # Type checking
 .mypy_cache/

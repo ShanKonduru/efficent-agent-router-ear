@@ -1,0 +1,95 @@
+name: Security — Trivy Filesystem Scan
+
+on:
+  push:
+    branches: ["master", "main"]
+  pull_request:
+    branches: ["master", "main"]
+  schedule:
+    # Weekly on Monday at 05:00 UTC
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write   # Required to upload SARIF to GitHub Security tab
+
+jobs:
+  trivy-scan:
+    name: Trivy filesystem scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create security_reports directory
+        run: mkdir -p security_reports
+
+      # ----------------------------------------------------------------
+      # Table report — visible in the Actions log for quick human review
+      # ----------------------------------------------------------------
+      - name: Trivy scan (table — console)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: "."
+          scanners: vuln,misconfig,secret
+          severity: HIGH,CRITICAL
+          format: table
+          exit-code: "0"       # Never fail on table step; gating done below
+
+      # ----------------------------------------------------------------
+      # JSON report — archived as workflow artefact
+      # ----------------------------------------------------------------
+      - name: Trivy scan (JSON — artefact)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: "."
+          scanners: vuln,misconfig,secret
+          severity: HIGH,CRITICAL
+          format: json
+          output: security_reports/trivy_latest.json
+          exit-code: "0"
+
+      # ----------------------------------------------------------------
+      # SARIF report — uploaded to GitHub Security / Code Scanning tab
+      # ----------------------------------------------------------------
+      - name: Trivy scan (SARIF — GitHub Security tab)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: "."
+          scanners: vuln,misconfig,secret
+          severity: HIGH,CRITICAL
+          format: sarif
+          output: security_reports/trivy_latest.sarif
+          exit-code: "0"
+
+      - name: Upload SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: security_reports/trivy_latest.sarif
+
+      # ----------------------------------------------------------------
+      # CI gate — fail the job if HIGH/CRITICAL findings exist
+      # ----------------------------------------------------------------
+      - name: Trivy scan (CI gate — fail on HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: "."
+          scanners: vuln,misconfig,secret
+          severity: HIGH,CRITICAL
+          format: table
+          exit-code: "1"
+
+      - name: Upload security reports artefact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-reports
+          path: security_reports/
+          retention-days: 90

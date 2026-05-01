@@ -1,0 +1,84 @@
+name: Publish — TestPyPI (Pre-release)
+
+# Publishes to TestPyPI on every push of a pre-release version tag:
+#   git tag v0.1.0rc1 && git push origin v0.1.0rc1
+#
+# Required repository secret:
+#   TEST_PYPI_API_TOKEN — token from https://test.pypi.org/manage/account/token/
+#                         Scope: "Entire account" OR scoped to this project.
+#
+# After publishing:
+#   pip install -i https://test.pypi.org/simple/ ear==<version>
+
+on:
+  push:
+    tags:
+      - "v*.*.*a*"    # alpha:   v0.1.0a1
+      - "v*.*.*b*"    # beta:    v0.1.0b1
+      - "v*.*.*rc*"   # rc:      v0.1.0rc1
+      - "v*.*.*dev*"  # dev:     v0.1.0.dev1
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run — build wheel but skip upload"
+        required: false
+        default: "false"
+        type: choice
+        options: ["true", "false"]
+
+permissions:
+  contents: read
+  id-token: write   # For OIDC trusted publishing (alternative to API token)
+
+jobs:
+  build-and-publish-testpypi:
+    name: Build & publish to TestPyPI
+    runs-on: ubuntu-latest
+    environment: testpypi   # Optional: configure as a GitHub environment with protection rules
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # Full history so setuptools-scm can compute version
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install build toolchain
+        run: pip install build twine
+
+      - name: Install project (for smoke test)
+        run: pip install -e ".[dev]"
+
+      - name: Run tests before packaging
+        env:
+          OPENROUTER_API_KEY: sk-or-test-key-ci
+        run: python -m pytest tests/ -v --no-cov
+
+      - name: Build source distribution and wheel
+        run: python -m build
+
+      - name: Inspect built distributions
+        run: |
+          ls -lh dist/
+          python -m twine check dist/*
+
+      - name: Upload build artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-testpypi
+          path: dist/
+          retention-days: 14
+
+      - name: Publish to TestPyPI
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          skip-existing: true
+          verbose: true

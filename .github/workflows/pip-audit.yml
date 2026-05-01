@@ -1,0 +1,70 @@
+name: Security — pip-audit (Dependency Vulnerabilities)
+
+on:
+  push:
+    branches: ["master", "main"]
+    paths:
+      - "pyproject.toml"
+      - "requirements*.txt"
+  pull_request:
+    branches: ["master", "main"]
+    paths:
+      - "pyproject.toml"
+      - "requirements*.txt"
+  schedule:
+    # Daily at 06:00 UTC to catch newly published CVEs
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write   # For GitHub Security tab upload (SARIF)
+
+jobs:
+  pip-audit:
+    name: pip-audit dependency scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install project and dev dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Create security_reports directory
+        run: mkdir -p security_reports
+
+      - name: Run pip-audit (JSON report)
+        # Continue on findings — the SARIF upload below gates the result
+        run: |
+          python -m pip_audit \
+            --format=json \
+            --output=security_reports/pip_audit_latest.json \
+            --progress-spinner=off || true
+
+      - name: Run pip-audit (CycloneDX SBOM)
+        run: |
+          python -m pip_audit \
+            --format=cyclonedx-json \
+            --output=security_reports/pip_audit_cyclonedx_latest.json \
+            --progress-spinner=off || true
+
+      - name: Run pip-audit (exit non-zero on findings — CI gate)
+        run: |
+          python -m pip_audit \
+            --progress-spinner=off
+
+      - name: Upload pip-audit reports as artefact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pip-audit-reports
+          path: security_reports/
+          retention-days: 90

@@ -1,0 +1,36 @@
+# ============================================================
+# .gitattributes — enforce consistent line endings per file type
+# ============================================================
+
+# Default: normalise all text files to LF in the repo;
+# Windows checkouts get CRLF via core.autocrlf.
+* text=auto
+
+# Shell scripts must stay LF everywhere (Windows Git runs them via WSL/Git Bash)
+*.sh text eol=lf
+
+# Windows batch files must stay CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Python source: always LF
+*.py  text eol=lf
+
+# YAML / TOML / Markdown / JSON / SARIF: LF
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+*.md   text eol=lf
+*.json text eol=lf
+*.sarif text eol=lf
+
+# Binary files — never modify
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.whl  binary
+*.zip  binary
+*.tar.gz binary
