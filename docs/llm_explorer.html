@@ -1,0 +1,852 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EAR LLM Explorer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-1: #f5f7fb;
+      --bg-2: #e9eff6;
+      --ink: #15202b;
+      --muted: #4b5f74;
+      --card: #ffffff;
+      --line: #d8e2ee;
+      --accent: #0e8f7b;
+      --accent-2: #ff9f1c;
+      --danger: #bb2528;
+      --ok: #117a37;
+      --chip: #edf6f4;
+      --shadow: 0 12px 30px rgba(11, 32, 53, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% 15%, #d7ecf8 0%, transparent 30%),
+        radial-gradient(circle at 90% 10%, #fbe7c3 0%, transparent 25%),
+        linear-gradient(155deg, var(--bg-1) 0%, var(--bg-2) 100%);
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      min-height: 100vh;
+    }
+
+    .wrap {
+      width: min(1440px, 96vw);
+      margin: 24px auto 40px;
+    }
+
+    .hero {
+      background: linear-gradient(110deg, #12263a 0%, #1f3e5c 45%, #20626e 100%);
+      color: #f5fafb;
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: 24px 26px;
+      overflow: hidden;
+      position: relative;
+      animation: settle 420ms ease-out;
+    }
+
+    .hero:after {
+      content: "";
+      position: absolute;
+      width: 340px;
+      height: 340px;
+      right: -120px;
+      top: -140px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.09);
+    }
+
+    .hero h1 {
+      margin: 0 0 10px;
+      font-size: clamp(1.5rem, 2.5vw, 2.3rem);
+      line-height: 1.15;
+      letter-spacing: 0.01em;
+    }
+
+    .hero p {
+      margin: 0;
+      color: #d6e8ea;
+      max-width: 880px;
+      font-size: 1rem;
+    }
+
+    .grid {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .filters {
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(5, minmax(160px, 1fr));
+      align-items: end;
+    }
+
+    .kpis {
+      padding: 14px;
+      border-top: 1px solid var(--line);
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(5, minmax(140px, 1fr));
+      background: #f8fbfd;
+    }
+
+    .kpi {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      background: #fff;
+    }
+
+    .kpi .label { color: var(--muted); font-size: 0.78rem; }
+    .kpi .value { font-size: 1.1rem; font-weight: 700; margin-top: 2px; }
+
+    label {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    input[type="search"], input[type="number"], select {
+      width: 100%;
+      border: 1px solid #bfd2e6;
+      background: #fff;
+      color: var(--ink);
+      border-radius: 10px;
+      padding: 9px 10px;
+      font-size: 0.95rem;
+      font-family: inherit;
+    }
+
+    .btn-row { display: flex; gap: 8px; align-items: center; }
+
+    .radio-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      min-height: 40px;
+    }
+
+    .radio-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 8px;
+      border: 1px solid #bfd2e6;
+      border-radius: 999px;
+      background: #fff;
+      font-size: 0.82rem;
+      color: #1c3c5d;
+    }
+
+    button {
+      border: 0;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 10px;
+      font-weight: 700;
+      padding: 10px 14px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: transform 140ms ease, filter 140ms ease;
+    }
+
+    button.secondary {
+      background: #385f89;
+    }
+
+    button:active { transform: translateY(1px); }
+    button:hover { filter: brightness(1.06); }
+
+    .provider-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 0 14px 14px;
+    }
+
+    .pill {
+      border: 1px solid #b9d6d0;
+      color: #225f57;
+      background: var(--chip);
+      padding: 6px 9px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      user-select: none;
+    }
+
+    .pill.active {
+      background: #1e8d7b;
+      color: #fff;
+      border-color: #1e8d7b;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      max-height: 66vh;
+      border-top: 1px solid var(--line);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1080px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.83rem;
+    }
+
+    thead th {
+      position: sticky;
+      background: #f4f8fd;
+      z-index: 3;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+      border-top: 1px solid var(--line);
+      color: #173654;
+      user-select: none;
+    }
+
+    thead tr.head-label th { top: 0; }
+    thead tr.head-filter th {
+      top: 36px;
+      background: #eef5fb;
+      z-index: 2;
+      padding-top: 6px;
+      padding-bottom: 6px;
+    }
+
+    th.sortable { cursor: pointer; }
+
+    .col-filter {
+      width: 100%;
+      border: 1px solid #bfd2e6;
+      border-radius: 7px;
+      padding: 5px 6px;
+      font-size: 0.76rem;
+      font-family: "IBM Plex Mono", monospace;
+      background: #fff;
+      color: #173654;
+    }
+
+    th, td {
+      padding: 9px 10px;
+      border-bottom: 1px solid #e9eef4;
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      transition: background 160ms ease;
+    }
+
+    tbody tr:hover { background: #f8fcff; }
+    tbody tr.selected { background: #e8f7f2; }
+
+    .mono { font-family: "IBM Plex Mono", monospace; }
+    .muted { color: var(--muted); }
+    .danger { color: var(--danger); }
+    .ok { color: var(--ok); }
+
+    .compare {
+      margin-top: 12px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      box-shadow: var(--shadow);
+      padding: 12px 14px;
+    }
+
+    .compare h3 { margin: 2px 0 8px; }
+
+    .compare-grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(4, minmax(180px, 1fr));
+    }
+
+    .compare-card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      background: #fcfeff;
+    }
+
+    .chip {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 2px 8px;
+      background: #ecf4fa;
+      color: #163653;
+      font-size: 0.74rem;
+      margin-left: 4px;
+    }
+
+    .loading {
+      padding: 20px;
+      font-weight: 700;
+      color: #1d4f7b;
+      text-align: center;
+    }
+
+    @media (max-width: 1050px) {
+      .filters { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
+      .kpis { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
+      .compare-grid { grid-template-columns: repeat(2, minmax(180px, 1fr)); }
+    }
+
+    @media (max-width: 650px) {
+      .filters { grid-template-columns: 1fr; }
+      .kpis { grid-template-columns: 1fr; }
+      .compare-grid { grid-template-columns: 1fr; }
+      .hero p { font-size: 0.92rem; }
+    }
+
+    @keyframes settle {
+      from { transform: translateY(8px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1>EAR LLM Explorer: Selectable, Filterable OpenRouter Comparison Grid</h1>
+      <p>
+        Explore live OpenRouter models with practical KPIs: context headroom, blended token cost, provider mix, and quick shortlists for coding, planning, and research use cases.
+      </p>
+    </section>
+
+    <section class="panel grid">
+      <div class="filters">
+        <div>
+          <label for="search">Search model id or name</label>
+          <input id="search" type="search" placeholder="gpt-4o, sonnet, gemini, llama...">
+        </div>
+        <div>
+          <label for="minContext">Min context length</label>
+          <input id="minContext" type="number" min="0" step="1000" value="0">
+        </div>
+        <div>
+          <label for="maxBlended">Max blended cost / 1M tokens (USD)</label>
+          <input id="maxBlended" type="number" min="0" step="0.01" value="1000">
+        </div>
+        <div>
+          <label for="pricedOnly">Pricing availability</label>
+          <select id="pricedOnly">
+            <option value="all">All models</option>
+            <option value="priced">Priced only</option>
+            <option value="unpriced">Unpriced only</option>
+          </select>
+        </div>
+        <div>
+          <label>Price tier</label>
+          <div class="radio-row" id="priceTierGroup">
+            <label class="radio-pill"><input type="radio" name="priceTier" value="all" checked> All</label>
+            <label class="radio-pill"><input type="radio" name="priceTier" value="free"> Free</label>
+            <label class="radio-pill"><input type="radio" name="priceTier" value="paid"> Paid</label>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button id="refreshBtn" type="button">Refresh Live Data</button>
+          <button id="resetBtn" class="secondary" type="button">Reset Filters</button>
+        </div>
+        <div>
+          <label for="refreshSeconds">Auto-refresh interval (seconds)</label>
+          <select id="refreshSeconds">
+            <option value="0">Off</option>
+            <option value="15">15</option>
+            <option value="30">30</option>
+            <option value="60" selected>60</option>
+            <option value="120">120</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="providerPills" class="provider-pills"></div>
+
+      <div style="padding: 0 14px 12px;" class="muted">
+        Live source: OpenRouter /models. Last updated: <span id="lastUpdated">never</span>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi"><div class="label">Visible Models</div><div id="kpiCount" class="value">-</div></div>
+        <div class="kpi"><div class="label">Median Context</div><div id="kpiMedianContext" class="value">-</div></div>
+        <div class="kpi"><div class="label">Avg Blended Cost / 1M</div><div id="kpiAvgCost" class="value">-</div></div>
+        <div class="kpi"><div class="label">Cheapest Priced Model</div><div id="kpiCheapest" class="value">-</div></div>
+        <div class="kpi"><div class="label">Highest Context Model</div><div id="kpiMaxContext" class="value">-</div></div>
+      </div>
+
+      <div class="table-wrap" id="tableWrap">
+        <div class="loading">Loading models from OpenRouter...</div>
+      </div>
+    </section>
+
+    <section class="compare">
+      <h3>Selected Model Comparison (up to 4)</h3>
+      <div id="compareGrid" class="compare-grid"></div>
+    </section>
+  </div>
+
+  <script>
+    const SOURCE_URL = "https://openrouter.ai/api/v1/models";
+
+    let allRows = [];
+    let visibleRows = [];
+    let selectedProviders = new Set();
+    let selectedIds = new Set();
+    let sortState = { key: "blendedCostPerMillion", dir: "asc" };
+    let tableColumnFilters = {
+      id: "",
+      provider: "all",
+      family: "all",
+      contextMin: "",
+      promptMax: "",
+      completionMax: "",
+      blendedMax: "",
+      maxCompletionMin: "",
+      modality: "all"
+    };
+    let refreshTimer = null;
+
+    const el = {
+      search: document.getElementById("search"),
+      minContext: document.getElementById("minContext"),
+      maxBlended: document.getElementById("maxBlended"),
+      pricedOnly: document.getElementById("pricedOnly"),
+      tableWrap: document.getElementById("tableWrap"),
+      providerPills: document.getElementById("providerPills"),
+      compareGrid: document.getElementById("compareGrid"),
+      refreshBtn: document.getElementById("refreshBtn"),
+      resetBtn: document.getElementById("resetBtn"),
+      priceTierInputs: document.querySelectorAll('input[name="priceTier"]'),
+      refreshSeconds: document.getElementById("refreshSeconds"),
+      lastUpdated: document.getElementById("lastUpdated"),
+      kpiCount: document.getElementById("kpiCount"),
+      kpiMedianContext: document.getElementById("kpiMedianContext"),
+      kpiAvgCost: document.getElementById("kpiAvgCost"),
+      kpiCheapest: document.getElementById("kpiCheapest"),
+      kpiMaxContext: document.getElementById("kpiMaxContext")
+    };
+
+    function providerFromId(modelId) {
+      const idx = modelId.indexOf("/");
+      return idx > 0 ? modelId.slice(0, idx) : "unknown";
+    }
+
+    function modelFamily(modelId) {
+      const id = modelId.toLowerCase();
+      if (id.includes("gpt")) return "gpt";
+      if (id.includes("claude")) return "claude";
+      if (id.includes("gemini")) return "gemini";
+      if (id.includes("llama")) return "llama";
+      if (id.includes("mistral")) return "mistral";
+      return "other";
+    }
+
+    function toRow(raw) {
+      const pricing = raw.pricing || {};
+      const promptCost = Number(pricing.prompt);
+      const completionCost = Number(pricing.completion);
+      const hasPricing = Number.isFinite(promptCost) && Number.isFinite(completionCost);
+      const blended = hasPricing ? (promptCost + completionCost) * 1_000_000 : Number.POSITIVE_INFINITY;
+      const isFreeTier = (hasPricing && promptCost === 0 && completionCost === 0)
+        || String(raw.id || "").toLowerCase().includes("free");
+      const isPaidTier = hasPricing && (promptCost > 0 || completionCost > 0);
+
+      return {
+        id: raw.id || "unknown",
+        name: raw.name || raw.id || "unknown",
+        provider: providerFromId(raw.id || "unknown"),
+        family: modelFamily(raw.id || "unknown"),
+        contextLength: Number(raw.context_length || 0),
+        promptCostPerMillion: hasPricing ? promptCost * 1_000_000 : null,
+        completionCostPerMillion: hasPricing ? completionCost * 1_000_000 : null,
+        blendedCostPerMillion: blended,
+        hasPricing,
+        isFreeTier,
+        isPaidTier,
+        topProvider: raw.top_provider && raw.top_provider.context_length ? "multi" : "unknown",
+        modality: raw.architecture && raw.architecture.modality ? String(raw.architecture.modality) : "text",
+        maxCompletionTokens: raw.top_provider && Number.isFinite(Number(raw.top_provider.max_completion_tokens))
+          ? Number(raw.top_provider.max_completion_tokens)
+          : null
+      };
+    }
+
+    function money(v) {
+      if (v === null || !Number.isFinite(v)) return "n/a";
+      return "$" + v.toFixed(2);
+    }
+
+    function intFmt(v) {
+      return Number(v || 0).toLocaleString("en-US");
+    }
+
+    function buildProviderPills(rows) {
+      const providers = [...new Set(rows.map(r => r.provider))].sort();
+      if (selectedProviders.size === 0) {
+        providers.forEach(p => selectedProviders.add(p));
+      }
+
+      el.providerPills.innerHTML = providers.map((p) => {
+        const active = selectedProviders.has(p) ? "active" : "";
+        return `<button class="pill ${active}" data-provider="${p}" type="button">${p}</button>`;
+      }).join("");
+
+      el.providerPills.querySelectorAll(".pill").forEach((pill) => {
+        pill.addEventListener("click", () => {
+          const provider = pill.dataset.provider;
+          if (selectedProviders.has(provider)) {
+            selectedProviders.delete(provider);
+          } else {
+            selectedProviders.add(provider);
+          }
+          render();
+        });
+      });
+    }
+
+    function applyFilters() {
+      const q = el.search.value.trim().toLowerCase();
+      const minContext = Number(el.minContext.value || 0);
+      const maxBlended = Number(el.maxBlended.value || Number.POSITIVE_INFINITY);
+      const pricedOnly = el.pricedOnly.value;
+      const selectedPriceTier = document.querySelector('input[name="priceTier"]:checked')?.value || "all";
+
+      visibleRows = allRows.filter((r) => {
+        if (!selectedProviders.has(r.provider)) return false;
+        if (q && !(r.id.toLowerCase().includes(q) || r.name.toLowerCase().includes(q))) return false;
+        if (r.contextLength < minContext) return false;
+        if (Number.isFinite(maxBlended) && r.blendedCostPerMillion > maxBlended) return false;
+        if (pricedOnly === "priced" && !r.hasPricing) return false;
+        if (pricedOnly === "unpriced" && r.hasPricing) return false;
+        if (selectedPriceTier === "free" && !r.isFreeTier) return false;
+        if (selectedPriceTier === "paid" && !r.isPaidTier) return false;
+
+        if (tableColumnFilters.id && !r.id.toLowerCase().includes(tableColumnFilters.id.toLowerCase())) return false;
+        if (tableColumnFilters.provider !== "all" && r.provider !== tableColumnFilters.provider) return false;
+        if (tableColumnFilters.family !== "all" && r.family !== tableColumnFilters.family) return false;
+        if (tableColumnFilters.modality !== "all" && r.modality !== tableColumnFilters.modality) return false;
+
+        const contextMinCol = Number(tableColumnFilters.contextMin);
+        if (Number.isFinite(contextMinCol) && tableColumnFilters.contextMin !== "" && r.contextLength < contextMinCol) return false;
+
+        const promptMax = Number(tableColumnFilters.promptMax);
+        if (Number.isFinite(promptMax) && tableColumnFilters.promptMax !== "" && (!r.hasPricing || r.promptCostPerMillion > promptMax)) return false;
+
+        const completionMax = Number(tableColumnFilters.completionMax);
+        if (Number.isFinite(completionMax) && tableColumnFilters.completionMax !== "" && (!r.hasPricing || r.completionCostPerMillion > completionMax)) return false;
+
+        const blendedMaxCol = Number(tableColumnFilters.blendedMax);
+        if (Number.isFinite(blendedMaxCol) && tableColumnFilters.blendedMax !== "" && (!r.hasPricing || r.blendedCostPerMillion > blendedMaxCol)) return false;
+
+        const maxCompletionMin = Number(tableColumnFilters.maxCompletionMin);
+        if (Number.isFinite(maxCompletionMin) && tableColumnFilters.maxCompletionMin !== "" && ((r.maxCompletionTokens || 0) < maxCompletionMin)) return false;
+
+        return true;
+      });
+
+      visibleRows.sort((a, b) => {
+        const av = a[sortState.key];
+        const bv = b[sortState.key];
+
+        const aIsNumber = typeof av === "number" || av === null;
+        const bIsNumber = typeof bv === "number" || bv === null;
+
+        if (aIsNumber && bIsNumber) {
+          const na = av === null ? Number.POSITIVE_INFINITY : av;
+          const nb = bv === null ? Number.POSITIVE_INFINITY : bv;
+          if (na === nb) return a.id.localeCompare(b.id);
+          return sortState.dir === "asc" ? na - nb : nb - na;
+        }
+
+        const sa = String(av ?? "").toLowerCase();
+        const sb = String(bv ?? "").toLowerCase();
+        const cmp = sa.localeCompare(sb);
+        if (cmp === 0) return a.id.localeCompare(b.id);
+        return sortState.dir === "asc" ? cmp : -cmp;
+      });
+    }
+
+    function updateKpis() {
+      const rows = visibleRows;
+      const priced = rows.filter(r => r.hasPricing);
+
+      el.kpiCount.textContent = intFmt(rows.length);
+
+      const contexts = rows.map(r => r.contextLength).sort((a, b) => a - b);
+      if (!contexts.length) {
+        el.kpiMedianContext.textContent = "-";
+      } else {
+        const mid = Math.floor(contexts.length / 2);
+        const median = contexts.length % 2 === 0 ? (contexts[mid - 1] + contexts[mid]) / 2 : contexts[mid];
+        el.kpiMedianContext.textContent = intFmt(median);
+      }
+
+      if (!priced.length) {
+        el.kpiAvgCost.textContent = "n/a";
+        el.kpiCheapest.textContent = "n/a";
+      } else {
+        const avg = priced.reduce((acc, r) => acc + r.blendedCostPerMillion, 0) / priced.length;
+        el.kpiAvgCost.textContent = money(avg);
+        const cheapest = [...priced].sort((a, b) => a.blendedCostPerMillion - b.blendedCostPerMillion)[0];
+        el.kpiCheapest.textContent = cheapest.id;
+      }
+
+      if (!rows.length) {
+        el.kpiMaxContext.textContent = "n/a";
+      } else {
+        const maxRow = [...rows].sort((a, b) => b.contextLength - a.contextLength)[0];
+        el.kpiMaxContext.textContent = `${maxRow.id} (${intFmt(maxRow.contextLength)})`;
+      }
+    }
+
+    function toggleSelect(modelId) {
+      if (selectedIds.has(modelId)) {
+        selectedIds.delete(modelId);
+      } else {
+        if (selectedIds.size >= 4) {
+          const first = selectedIds.values().next().value;
+          selectedIds.delete(first);
+        }
+        selectedIds.add(modelId);
+      }
+      renderCompare();
+      renderTableOnly();
+    }
+
+    function renderCompare() {
+      const rows = allRows.filter(r => selectedIds.has(r.id));
+      if (!rows.length) {
+        el.compareGrid.innerHTML = "<div class='muted'>Select rows from the table to compare models side by side.</div>";
+        return;
+      }
+
+      el.compareGrid.innerHTML = rows.map((r) => `
+        <article class="compare-card">
+          <div><strong>${r.name}</strong></div>
+          <div class="muted mono" style="margin-top:3px;">${r.id}</div>
+          <div style="margin-top:8px;">Provider: <span class="chip">${r.provider}</span></div>
+          <div>Family: <span class="chip">${r.family}</span></div>
+          <div style="margin-top:6px;">Context: <strong>${intFmt(r.contextLength)}</strong></div>
+          <div>Prompt / 1M: <strong>${money(r.promptCostPerMillion)}</strong></div>
+          <div>Completion / 1M: <strong>${money(r.completionCostPerMillion)}</strong></div>
+          <div>Blended / 1M: <strong>${money(r.blendedCostPerMillion)}</strong></div>
+          <div>Modality: <strong>${r.modality}</strong></div>
+          <div>Max completion: <strong>${r.maxCompletionTokens ? intFmt(r.maxCompletionTokens) : "n/a"}</strong></div>
+        </article>
+      `).join("");
+    }
+
+    function renderTableOnly() {
+      const headers = [
+        ["sel", "Select"],
+        ["id", "Model ID"],
+        ["provider", "Provider"],
+        ["family", "Family"],
+        ["contextLength", "Context"],
+        ["promptCostPerMillion", "Prompt$/1M"],
+        ["completionCostPerMillion", "Comp$/1M"],
+        ["blendedCostPerMillion", "Blend$/1M"],
+        ["maxCompletionTokens", "Max Completion"],
+        ["modality", "Modality"]
+      ];
+
+      const providers = [...new Set(allRows.map((r) => r.provider))].sort();
+      const families = [...new Set(allRows.map((r) => r.family))].sort();
+      const modalities = [...new Set(allRows.map((r) => r.modality))].sort();
+
+      const head = headers.map(([key, label]) => {
+        if (key === "sel") return `<th>${label}</th>`;
+        const marker = sortState.key === key ? (sortState.dir === "asc" ? " ▲" : " ▼") : "";
+        return `<th class="sortable" data-sort="${key}">${label}${marker}</th>`;
+      }).join("");
+
+      const filterCells = headers.map(([key]) => {
+        if (key === "sel") return "<th></th>";
+        if (key === "id") {
+          return `<th><input class="col-filter" data-col-filter="id" type="search" placeholder="contains" value="${tableColumnFilters.id}"></th>`;
+        }
+        if (key === "provider") {
+          const opts = ["<option value=\"all\">all</option>", ...providers.map((p) => `<option value=\"${p}\" ${tableColumnFilters.provider === p ? "selected" : ""}>${p}</option>`)];
+          return `<th><select class="col-filter" data-col-filter="provider">${opts.join("")}</select></th>`;
+        }
+        if (key === "family") {
+          const opts = ["<option value=\"all\">all</option>", ...families.map((f) => `<option value=\"${f}\" ${tableColumnFilters.family === f ? "selected" : ""}>${f}</option>`)];
+          return `<th><select class="col-filter" data-col-filter="family">${opts.join("")}</select></th>`;
+        }
+        if (key === "contextLength") {
+          return `<th><input class="col-filter" data-col-filter="contextMin" type="number" min="0" placeholder=">=" value="${tableColumnFilters.contextMin}"></th>`;
+        }
+        if (key === "promptCostPerMillion") {
+          return `<th><input class="col-filter" data-col-filter="promptMax" type="number" min="0" step="0.01" placeholder="<=" value="${tableColumnFilters.promptMax}"></th>`;
+        }
+        if (key === "completionCostPerMillion") {
+          return `<th><input class="col-filter" data-col-filter="completionMax" type="number" min="0" step="0.01" placeholder="<=" value="${tableColumnFilters.completionMax}"></th>`;
+        }
+        if (key === "blendedCostPerMillion") {
+          return `<th><input class="col-filter" data-col-filter="blendedMax" type="number" min="0" step="0.01" placeholder="<=" value="${tableColumnFilters.blendedMax}"></th>`;
+        }
+        if (key === "maxCompletionTokens") {
+          return `<th><input class="col-filter" data-col-filter="maxCompletionMin" type="number" min="0" placeholder=">=" value="${tableColumnFilters.maxCompletionMin}"></th>`;
+        }
+        if (key === "modality") {
+          const opts = ["<option value=\"all\">all</option>", ...modalities.map((m) => `<option value=\"${m}\" ${tableColumnFilters.modality === m ? "selected" : ""}>${m}</option>`)];
+          return `<th><select class="col-filter" data-col-filter="modality">${opts.join("")}</select></th>`;
+        }
+        return "<th></th>";
+      }).join("");
+
+      const body = visibleRows.map((r) => {
+        const selected = selectedIds.has(r.id) ? "selected" : "";
+        const costClass = r.hasPricing ? "ok" : "danger";
+        return `
+          <tr class="${selected}">
+            <td><input type="checkbox" data-pick="${r.id}" ${selected ? "checked" : ""}></td>
+            <td class="mono">${r.id}</td>
+            <td>${r.provider}</td>
+            <td>${r.family}</td>
+            <td>${intFmt(r.contextLength)}</td>
+            <td class="${costClass}">${money(r.promptCostPerMillion)}</td>
+            <td class="${costClass}">${money(r.completionCostPerMillion)}</td>
+            <td class="${costClass}">${money(r.blendedCostPerMillion)}</td>
+            <td>${r.maxCompletionTokens ? intFmt(r.maxCompletionTokens) : "n/a"}</td>
+            <td>${r.modality}</td>
+          </tr>
+        `;
+      }).join("");
+
+      el.tableWrap.innerHTML = `<table><thead><tr class="head-label">${head}</tr><tr class="head-filter">${filterCells}</tr></thead><tbody>${body}</tbody></table>`;
+
+      el.tableWrap.querySelectorAll("th[data-sort]").forEach((th) => {
+        th.addEventListener("click", () => {
+          const key = th.dataset.sort;
+          if (sortState.key === key) {
+            sortState.dir = sortState.dir === "asc" ? "desc" : "asc";
+          } else {
+            sortState.key = key;
+            sortState.dir = "asc";
+          }
+          render();
+        });
+      });
+
+      el.tableWrap.querySelectorAll("input[data-pick]").forEach((box) => {
+        box.addEventListener("change", () => toggleSelect(box.dataset.pick));
+      });
+
+      el.tableWrap.querySelectorAll("[data-col-filter]").forEach((ctrl) => {
+        const eventName = ctrl.tagName === "SELECT" ? "change" : "input";
+        ctrl.addEventListener(eventName, () => {
+          tableColumnFilters[ctrl.dataset.colFilter] = ctrl.value;
+          render();
+        });
+      });
+    }
+
+    function render() {
+      buildProviderPills(allRows);
+      applyFilters();
+      updateKpis();
+      renderTableOnly();
+      renderCompare();
+    }
+
+    function resetFilters() {
+      el.search.value = "";
+      el.minContext.value = "0";
+      el.maxBlended.value = "1000";
+      el.pricedOnly.value = "all";
+      document.querySelector('input[name="priceTier"][value="all"]').checked = true;
+      tableColumnFilters = {
+        id: "",
+        provider: "all",
+        family: "all",
+        contextMin: "",
+        promptMax: "",
+        completionMax: "",
+        blendedMax: "",
+        maxCompletionMin: "",
+        modality: "all"
+      };
+      selectedProviders = new Set(allRows.map(r => r.provider));
+      render();
+    }
+
+    async function loadData() {
+      el.tableWrap.innerHTML = "<div class='loading'>Loading models from OpenRouter...</div>";
+      try {
+        const ts = Date.now();
+        const res = await fetch(`${SOURCE_URL}?_ts=${ts}`, {
+          method: "GET",
+          cache: "no-store"
+        });
+        if (!res.ok) {
+          throw new Error(`OpenRouter responded with status ${res.status}`);
+        }
+        const payload = await res.json();
+        const raw = Array.isArray(payload.data) ? payload.data : [];
+        allRows = raw.map(toRow);
+
+        if (allRows.length === 0) {
+          el.tableWrap.innerHTML = "<div class='loading danger'>No models returned from OpenRouter.</div>";
+          return;
+        }
+
+        if (selectedProviders.size === 0) {
+          selectedProviders = new Set(allRows.map(r => r.provider));
+        }
+
+        el.lastUpdated.textContent = new Date().toLocaleString();
+        render();
+      } catch (err) {
+        el.tableWrap.innerHTML = `<div class='loading danger'>Failed to load OpenRouter model metadata. ${String(err)}</div>`;
+      }
+    }
+
+    function configureAutoRefresh() {
+      const seconds = Number(el.refreshSeconds.value || 0);
+      if (refreshTimer !== null) {
+        clearInterval(refreshTimer);
+        refreshTimer = null;
+      }
+      if (seconds > 0) {
+        refreshTimer = setInterval(loadData, seconds * 1000);
+      }
+    }
+
+    el.search.addEventListener("input", render);
+    el.minContext.addEventListener("input", render);
+    el.maxBlended.addEventListener("input", render);
+    el.pricedOnly.addEventListener("change", render);
+    el.priceTierInputs.forEach((input) => input.addEventListener("change", render));
+    el.refreshBtn.addEventListener("click", loadData);
+    el.resetBtn.addEventListener("click", resetFilters);
+    el.refreshSeconds.addEventListener("change", configureAutoRefresh);
+
+    configureAutoRefresh();
+    loadData();
+  </script>
+</body>
+</html>

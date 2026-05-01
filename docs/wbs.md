@@ -29,7 +29,9 @@ Track delivery using the status column for every item.
 | E7 | Observability and Cost/Latency Metrics | P2 | 5 | M3 | `[x]` |
 | E8 | MCP Server and Tool Exposure | P3 | 8 | M4 | `[x]` |
 | E9 | CI/CD and Security Automation | P2 | 4 | M4 | `[x]` |
-| | **Total** | | **68** | | |
+| E10 | Execution Plane and Adaptive Routing Intelligence | P1 | 13 | M5 | `[ ]` |
+| E11 | Leadership Demo Frontend and GTM Showcase | P2 | 8 | M6 | `[ ]` |
+| | **Total** | | **89** | | |
 
 ---
 
@@ -41,6 +43,8 @@ Track delivery using the status column for every item.
 | M2 — Router Core and CLI | Week 2–3 | E3, E4, E5 | `ear route` command stable; fallback tested; routing at 100% coverage | `[x]` |
 | M3 — Guardrails and Observability | Week 4 | E6, E7 | Injection and PII policy enforced; metrics reporting available | `[x]` |
 | M4 — MCP and Automation | Week 5 | E8, E9 | MCP tool live; CI pipeline gates passing | `[x]` |
+| M5 — Execution and Intelligence | Week 6–7 | E10 | Real model execution active; semantic safety and adaptive intent routing validated | `[ ]` |
+| M6 — Frontend and Leadership Demo | Week 8 | E11 | Web demo shows measurable business value and investor-ready narratives | `[ ]` |
 
 ---
 
@@ -264,7 +268,7 @@ Track delivery using the status column for every item.
 
 | ID | User Story | Priority | Points | Status |
 | --- | --- | --- | --- | --- |
-| US-8 | As a maintainer, I want automated checks on every PR so regressions and vulnerabilities are caught before merge. | P2 | 3 | `[~]` |
+| US-8 | As a maintainer, I want automated checks on every PR so regressions and vulnerabilities are caught before merge. | P2 | 3 | `[x]` |
 
 **Acceptance Criteria**
 - Given a PR is opened, when CI runs, then pytest must pass with 100% coverage or the build fails.
@@ -280,22 +284,97 @@ Track delivery using the status column for every item.
 
 ---
 
+## E10 — Execution Plane and Adaptive Routing Intelligence
+
+> Close the delivery gap between model recommendation and real model execution so EAR provides measurable end-user value.
+
+**Priority:** P1 · **Total Points:** 13
+
+### Feature F9 — Unified Execution Runtime (LiteLLM)
+
+| ID | User Story | Priority | Points | Status |
+| --- | --- | --- | --- | --- |
+| US-9 | As a user, I want EAR to execute the selected model and return the final answer so routing directly improves my workflow. | P1 | 8 | `[ ]` |
+
+**Acceptance Criteria**
+- Given `ear route --execute`, when a model is selected, then EAR calls the model and returns generated content with route metadata.
+- Given MCP `route_and_execute`, when called, then a response payload includes selected model, output text, and fallback trace.
+- Given a 429/5xx/timeout on primary model, when execution runs, then fallback candidates are attempted and recorded.
+- Given a successful completion, when metrics are emitted, then real latency and token/cost usage are captured from provider response usage fields.
+
+| Task ID | Task | Sub-tasks | Priority | Points | Status |
+| --- | --- | --- | --- | --- | --- |
+| T9.1 | Add LiteLLM execution adapter | Create provider-agnostic request/response interface; map OpenRouter models; configure auth/timeouts | P1 | 2 | `[ ]` |
+| T9.2 | Implement execution orchestration service | Compose guardrails, router, executor, and fallback into one deterministic pipeline | P1 | 3 | `[ ]` |
+| T9.3 | Extend CLI and MCP contracts for execution mode | Add explicit execute flag and output schema fields for response text and execution metadata | P1 | 2 | `[ ]` |
+| T9.4 | Emit real execution telemetry | Record actual end-to-end latency, token usage, cost estimate, and fallback attempt counts | P1 | 2 | `[ ]` |
+| T9.5 | Add integration tests for execution paths | Mock success, 429, 5xx, timeout, and malformed payloads; assert fallback and telemetry correctness | P1 | 3 | `[ ]` |
+
+### Feature F10 — Adaptive Intent and Semantic Safety
+
+| ID | User Story | Priority | Points | Status |
+| --- | --- | --- | --- | --- |
+| US-10 | As a security and platform owner, I want semantic intent/injection analysis so routing quality improves and policy evasion risk drops. | P1 | 5 | `[ ]` |
+
+**Acceptance Criteria**
+- Given ambiguous prompts, when intent classification runs, then embedding/flash-model classification outperforms keyword baseline on evaluation set.
+- Given jailbreak-style prompts, when semantic injection analysis runs, then high-risk prompts are blocked or downgraded with reason codes.
+- Given execution requests, when mini-controller mode is enabled, then a small model can provide route hints in strict JSON and routing remains deterministic.
+
+| Task ID | Task | Sub-tasks | Priority | Points | Status |
+| --- | --- | --- | --- | --- | --- |
+| T9.6 | Add advanced intent classifier | Integrate local embedding classifier or flash-model intent endpoint with deterministic fallback to heuristics | P1 | 2 | `[ ]` |
+| T9.7 | Implement semantic prompt-injection detector | Add risk scoring pipeline and policy thresholds; return machine-readable reason codes | P1 | 3 | `[ ]` |
+| T9.8 | Add mini-controller routing hints | Define strict JSON schema for controller output; validate and merge with deterministic scoring rules | P2 | 2 | `[ ]` |
+| T9.9 | Build evaluation harness and benchmark suite | Compare precision/recall vs current heuristics for intent and injection detection | P2 | 3 | `[ ]` |
+
+---
+
+## E11 — Leadership Demo Frontend and GTM Showcase
+
+> Demonstrate business value clearly to leadership and investors through an interactive product narrative instead of code artifacts.
+
+**Priority:** P2 · **Total Points:** 8
+
+### Feature F11 — Interactive Value Demonstration App
+
+| ID | User Story | Priority | Points | Status |
+| --- | --- | --- | --- | --- |
+| US-11 | As a leadership stakeholder, I want a visual, interactive EAR demo so I can quickly understand cost, reliability, and safety benefits. | P2 | 5 | `[ ]` |
+
+**Acceptance Criteria**
+- Given a demo scenario, when a prompt is executed, then UI shows selected model, answer, fallback timeline, and safety decisions.
+- Given baseline and EAR modes, when results are compared, then cost/latency deltas and reliability gains are visualized.
+- Given leadership presentation mode, when run on desktop or mobile, then the flow is stable, polished, and non-technical stakeholders can follow it end-to-end.
+- Given investor review, when viewing the dashboard, then KPI panels highlight ROI signals (cost saved, failure avoided, policy violations blocked).
+
+| Task ID | Task | Sub-tasks | Priority | Points | Status |
+| --- | --- | --- | --- | --- | --- |
+| T10.1 | Build frontend shell and design system | Implement responsive web app with scenario selector, run panel, metrics cards, and narrative timeline | P2 | 3 | `[ ]` |
+| T10.2 | Expose demo backend endpoints | Add API layer for route/execute, baseline compare mode, and replay datasets for deterministic demonstrations | P2 | 2 | `[ ]` |
+| T10.3 | Implement value storytelling views | Add before/after comparison charts, safety incident feed, and executive summary mode | P2 | 2 | `[ ]` |
+| T10.4 | Add demo readiness validation | Seed golden scenarios, add smoke tests, and create one-click script for leadership walkthrough | P2 | 1 | `[ ]` |
+
+---
+
 ## WBS Summary
 
 | Metric | Value |
 | --- | --- |
-| Total Epics | 9 |
-| Total Features | 9 |
-| Total User Stories | 9 |
-| Total Tasks | 35 |
-| Total Story Points | 68 |
-| Estimated Timeline | 4–6 weeks |
+| Total Epics | 11 |
+| Total Features | 12 |
+| Total User Stories | 12 |
+| Total Tasks | 48 |
+| Total Story Points | 89 |
+| Estimated Timeline | 6–8 weeks |
 | Weekly Capacity Assumption | 10–14 points/week |
 
 ## Priority Order for Development
 
 From the current project state, the remaining execution order is:
 
-1. Release execution for v0.10.1 using the current playbook checklist
-2. Keep branch synchronization policy (`master` and `main`) enforced for every release change
-3. Continue dependency and security posture monitoring in scheduled workflows
+1. E10 F9 — implement true route-and-execute runtime via LiteLLM with telemetry and fallback
+2. E10 F10 — add semantic intent/injection intelligence and mini-controller evaluation harness
+3. E11 F11 — deliver leadership/investor frontend demo with baseline-vs-EAR value comparison
+4. Keep branch synchronization policy (`master` and `main`) enforced for every release change
+5. Continue dependency and security posture monitoring in scheduled workflows

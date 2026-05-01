@@ -78,6 +78,27 @@ Expected output modes:
 - Resources: model performance metrics, cost per session
 - Transport: stdio first, optional SSE extension
 
+## Interactive LLM Explorer UI
+- File: `docs/llm_explorer.html`
+- Purpose: interactive OpenRouter model table for leadership and investor demos.
+
+What it includes:
+- Live model fetch from OpenRouter (`/api/v1/models`).
+- Search, provider pills, min-context, max-cost, and priced/unpriced filters.
+- Sortable KPI table with model selection checkboxes.
+- Side-by-side comparison cards for selected models (up to 4).
+
+How to run:
+1. Open `docs/llm_explorer.html` directly in a browser, or
+2. Serve repo root with a static server and open `/docs/llm_explorer.html`.
+
+Example with Python static server:
+
+```bash
+python -m http.server 8080
+# then browse http://localhost:8080/docs/llm_explorer.html
+```
+
 ## Configuration
 Environment variables (minimum):
 - OPENROUTER_API_KEY

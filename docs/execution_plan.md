@@ -14,12 +14,15 @@
 5. Reliability and Cascade Fallback (`[x]`)
 6. Observability and Cost/Latency Metrics (`[x]`)
 7. MCP Server and Tool Exposure (`[x]`)
-8. CI/CD and Security Automation (`[~]`)
+8. CI/CD and Security Automation (`[x]`)
+9. Execution Plane and Adaptive Routing Intelligence (`[ ]`)
+10. Leadership Demo Frontend and GTM Showcase (`[ ]`)
 
 ## Recommended Execution Order (Current State)
-1. E9 forced-failure validation (T8.3)
-2. Security policy cleanup (temporary CVE ignore review/removal)
-3. Release readiness documentation pass
+1. E10 F9: implement true route-and-execute runtime (LiteLLM + fallback + real telemetry)
+2. E10 F10: add semantic intent/injection intelligence and benchmark harness
+3. E11 F11: build leadership/investor frontend demo with baseline-vs-EAR value views
+4. Continue release governance and branch synchronization
 
 ## User Stories, Tasks, and Estimates
 
@@ -114,6 +117,44 @@
   - T8.3 Validate workflow with sample failure case (1 pt) `[x]`
   - T8.4 Verify ongoing branch synchronization policy for `master` and `main` (1 pt) `[x]`
 
+### F9. Unified Execution Runtime (LiteLLM)
+- Story US-9 (8 pts) `[ ]`: As a user, I want EAR to execute routed model calls and return final answers with fallback transparency.
+- Acceptance highlights:
+  - Route decision is followed by real provider execution.
+  - MCP `route_and_execute` returns model output plus route metadata.
+  - 429/5xx/timeout failures trigger ordered fallback attempts.
+  - Metrics capture real latency, tokens, and cost from provider usage.
+- Tasks:
+  - T9.1 Add LiteLLM execution adapter and provider mapping (2 pts) `[ ]`
+  - T9.2 Implement execution orchestration service (3 pts) `[ ]`
+  - T9.3 Extend CLI and MCP contracts for execute mode (2 pts) `[ ]`
+  - T9.4 Emit real execution telemetry (2 pts) `[ ]`
+  - T9.5 Add integration tests for success/failure execution paths (3 pts) `[ ]`
+
+### F10. Adaptive Intent and Semantic Safety
+- Story US-10 (5 pts) `[ ]`: As a platform owner, I want semantic intent and injection analysis so routing quality and safety improve beyond keyword rules.
+- Acceptance highlights:
+  - Advanced intent classification outperforms current heuristic baseline.
+  - Semantic jailbreak analysis adds policy risk scoring and reason codes.
+  - Optional mini-controller returns strict JSON route hints without breaking deterministic safeguards.
+- Tasks:
+  - T9.6 Integrate embedding or flash-model intent classifier (2 pts) `[ ]`
+  - T9.7 Implement semantic prompt-injection detector (3 pts) `[ ]`
+  - T9.8 Add mini-controller routing hint flow with schema validation (2 pts) `[ ]`
+  - T9.9 Build benchmark suite versus heuristic baseline (3 pts) `[ ]`
+
+### F11. Leadership Demo Frontend
+- Story US-11 (5 pts) `[ ]`: As a leadership stakeholder, I want an interactive EAR demo that clearly shows ROI and risk reduction.
+- Acceptance highlights:
+  - End-to-end scenario runs show selected model, response, fallback trail, and safety events.
+  - Baseline versus EAR mode shows measurable deltas for cost, latency, and reliability.
+  - Executive view is presentation-ready across desktop and mobile.
+- Tasks:
+  - T10.1 Build responsive demo UI shell and scenario flow (3 pts) `[ ]`
+  - T10.2 Add backend API bridge and deterministic replay data (2 pts) `[ ]`
+  - T10.3 Implement KPI dashboards and storytelling panels (2 pts) `[ ]`
+  - T10.4 Add one-click demo script and smoke tests (1 pt) `[ ]`
+
 ## Milestones
 
 ### M1. Foundation and Registry (Target: Week 1) `[x]`
@@ -141,10 +182,22 @@
   - MCP tool available
   - CI pipeline gates passing
 
+### M5. Execution and Intelligence (Target: Week 6-7) `[ ]`
+- Scope: F9, F10
+- Exit criteria:
+  - Route decisions execute real model calls with resilient fallback
+  - Semantic intent/injection controls validated against benchmark set
+
+### M6. Frontend and Leadership Demo (Target: Week 8) `[ ]`
+- Scope: F11
+- Exit criteria:
+  - Investor/leadership demo app shows measurable EAR value narrative
+  - Demo flow passes scripted walkthrough and smoke tests
+
 ## Capacity and Sizing Summary
-- Total story points: 42
+- Total story points: 60
 - Suggested team capacity assumption: 10 to 14 points/week
-- Estimated timeline: 4 to 6 weeks depending on team size and external API volatility
+- Estimated timeline: 6 to 8 weeks depending on team size and external API volatility
 
 ## Risk Register
 1. OpenRouter payload changes break parsing
@@ -158,6 +211,12 @@
 
 4. 100% coverage target slows delivery
 - Mitigation: parallelize test authoring with feature development.
+
+5. Execution-provider abstraction drift (OpenRouter vs LiteLLM mapping)
+- Mitigation: add contract tests around request/response mapping and strict schema validation.
+
+6. Demo fails to communicate business value to non-technical stakeholders
+- Mitigation: predefine three investor-ready scenarios with KPI deltas and narrative annotations.
 
 ## Definition of Done
 - Feature code merged with typed interfaces.
