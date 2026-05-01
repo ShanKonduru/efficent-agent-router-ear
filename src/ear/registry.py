@@ -1,14 +1,14 @@
-"""Model registry — fetches and caches LLM specs from one or more model providers.
+"""Model registry - fetches and caches LLM specs from one or more model providers.
 
 OOP Design
 ----------
-``BaseModelRegistry``  — abstract contract every routing provider must satisfy.
-``OpenRouterRegistry`` — concrete implementation for the OpenRouter API.
-``RegistryFactory``    — creates registries by name; call :meth:`RegistryFactory.register`
+``BaseModelRegistry``  - abstract contract every routing provider must satisfy.
+``OpenRouterRegistry`` - concrete implementation for the OpenRouter API.
+``RegistryFactory``    - creates registries by name; call :meth:`RegistryFactory.register`
                          to add a new provider (e.g. HuggingFace, Anthropic) without
                          touching any existing code (Open/Closed Principle).
 
-``RegistryClient``     — backward-compatible alias for ``OpenRouterRegistry``.
+``RegistryClient``     - backward-compatible alias for ``OpenRouterRegistry``.
 """
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ _MODELS_PATH = "/models"
 
 
 # ---------------------------------------------------------------------------
-# Abstract base — the interface every provider must implement
+# Abstract base - the interface every provider must implement
 # ---------------------------------------------------------------------------
 
 class BaseModelRegistry(ABC):
@@ -69,7 +69,7 @@ class BaseModelRegistry(ABC):
 
 
 # ---------------------------------------------------------------------------
-# Concrete implementation — OpenRouter
+# Concrete implementation - OpenRouter
 # ---------------------------------------------------------------------------
 
 class OpenRouterRegistry(BaseModelRegistry):
@@ -127,7 +127,7 @@ class OpenRouterRegistry(BaseModelRegistry):
         )
 
     # ------------------------------------------------------------------
-    # Internal helpers (protected — override in subclasses if needed)
+    # Internal helpers (protected - override in subclasses if needed)
     # ------------------------------------------------------------------
 
     async def _fetch_models(self) -> list[LLMSpec]:
@@ -203,22 +203,23 @@ class OpenRouterRegistry(BaseModelRegistry):
         return {
             "Authorization": f"Bearer {self._config.openrouter_api_key}",
             "HTTP-Referer": "https://github.com/ShanKonduru/efficent-agent-router-ear",
-            "X-Title": "EAR — Efficient Agent Router",
+            # HTTP header values must be ASCII per RFC 7230/httpx normalization.
+            "X-Title": "EAR - Efficient Agent Router",
         }
 
 
 # ---------------------------------------------------------------------------
-# Factory — extension point for new providers
+# Factory - extension point for new providers
 # ---------------------------------------------------------------------------
 
 class RegistryFactory:
     """Creates model registry instances by provider name.
 
     This is the primary extension point for adding new routing providers.
-    No existing code needs to change — just register the new class and the
+    No existing code needs to change - just register the new class and the
     factory will route :meth:`create` calls to it automatically.
 
-    Example — adding a hypothetical HuggingFace provider::
+    Example - adding a hypothetical HuggingFace provider::
 
         class HuggingFaceRegistry(BaseModelRegistry):
             ...

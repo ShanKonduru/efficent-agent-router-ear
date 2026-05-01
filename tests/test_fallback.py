@@ -55,3 +55,8 @@ class TestFallbackPipelineInit:
         )
         with pytest.raises(NotImplementedError):
             await pipeline.execute(decision, "test prompt")
+
+    async def test_call_model_not_implemented(self) -> None:
+        pipeline = FallbackPipeline()
+        with pytest.raises(NotImplementedError):
+            await pipeline._call_model("openai/gpt-4o", "test prompt")

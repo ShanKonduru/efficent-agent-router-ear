@@ -26,6 +26,11 @@ class TestSuitabilityScorerInit:
         scorer = SuitabilityScorer()
         assert scorer is not None
 
+    def test_score_not_implemented(self, sample_llm_spec) -> None:  # type: ignore[no-untyped-def]
+        scorer = SuitabilityScorer()
+        with pytest.raises(NotImplementedError):
+            scorer.score(sample_llm_spec, TaskType.SIMPLE, BudgetPriority.MEDIUM)
+
 
 class TestRouterEngineInit:
     def test_instantiation(self) -> None:
@@ -37,3 +42,13 @@ class TestRouterEngineInit:
         request = RoutingRequest(prompt="Test prompt")
         with pytest.raises(NotImplementedError):
             engine.decide(request, [sample_llm_spec])
+
+    def test_filter_eligible_not_implemented(self, sample_llm_spec) -> None:  # type: ignore[no-untyped-def]
+        engine = RouterEngine()
+        with pytest.raises(NotImplementedError):
+            engine._filter_eligible("Hello", [sample_llm_spec])
+
+    def test_rank_candidates_not_implemented(self, sample_llm_spec) -> None:  # type: ignore[no-untyped-def]
+        engine = RouterEngine()
+        with pytest.raises(NotImplementedError):
+            engine._rank_candidates([sample_llm_spec], TaskType.CODING, BudgetPriority.HIGH)
