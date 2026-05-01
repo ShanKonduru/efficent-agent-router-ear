@@ -23,6 +23,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install sec-report-kit
+        run: pip install sec-report-kit==0.1.4
+
       - name: Create security_reports directory
         run: mkdir -p security_reports
 
@@ -52,6 +60,13 @@ jobs:
           format: json
           output: security_reports/trivy_latest.json
           exit-code: "0"
+
+      - name: Render Trivy HTML report (sec-report-kit)
+        run: |
+          srk render trivy \
+            --input security_reports/trivy_latest.json \
+            --output security_reports/trivy_latest.html \
+            --target .
 
       # ----------------------------------------------------------------
       # SARIF report — uploaded to GitHub Security / Code Scanning tab

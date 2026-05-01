@@ -1,0 +1,11 @@
+{
+  "mcp": {
+    "servers": {
+      "sec-report-kit": {
+        "type": "stdio",
+        "command": "srk",
+        "args": ["mcp", "serve", "--transport", "stdio"]
+      }
+    }
+  }
+}

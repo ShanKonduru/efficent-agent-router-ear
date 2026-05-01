@@ -25,6 +25,8 @@ set TIMESTAMP=%DT:~0,8%_%DT:~8,6%
 set REPORT_JSON=%REPORTS_DIR%\pip_audit_%TIMESTAMP%.json
 set REPORT_CYCLONE=%REPORTS_DIR%\pip_audit_cyclonedx_%TIMESTAMP%.json
 set LATEST_JSON=%REPORTS_DIR%\pip_audit_latest.json
+set REPORT_HTML=%REPORTS_DIR%\pip_audit_%TIMESTAMP%.html
+set LATEST_HTML=%REPORTS_DIR%\pip_audit_latest.html
 
 echo.
 echo ============================================================
@@ -43,12 +45,37 @@ python -m pip_audit --format=cyclonedx-json --output="%REPORT_CYCLONE%" --progre
 :: Copy to a stable "latest" name for dashboards / CI artefacts.
 copy /Y "%REPORT_JSON%" "%LATEST_JSON%" >nul
 
+where srk >nul 2>&1
+if %ERRORLEVEL% NEQ 0 (
+    echo [INFO] sec-report-kit not found. Installing into current environment...
+    python -m pip install sec-report-kit >nul
+)
+
+set RENDER_EXIT=0
+where srk >nul 2>&1
+if %ERRORLEVEL% EQU 0 (
+    srk render pip-audit --input "%REPORT_JSON%" --output "%REPORT_HTML%" --target pyproject.toml
+    set RENDER_EXIT=%ERRORLEVEL%
+    if !RENDER_EXIT! EQU 0 (
+        copy /Y "%REPORT_HTML%" "%LATEST_HTML%" >nul
+    )
+) else (
+    echo [WARN] Unable to find srk after install attempt. HTML report not generated.
+    set RENDER_EXIT=2
+)
+
+if %AUDIT_EXIT% EQU 0 if NOT %RENDER_EXIT% EQU 0 set AUDIT_EXIT=%RENDER_EXIT%
+
 echo.
 echo ============================================================
 echo  pip-audit reports written to %REPORTS_DIR%\
 echo    JSON     : %REPORT_JSON%
 echo    CycloneDX: %REPORT_CYCLONE%
 echo    Latest   : %LATEST_JSON%
+if %RENDER_EXIT% EQU 0 (
+    echo    HTML     : %REPORT_HTML%
+    echo    Latest   : %LATEST_HTML%
+)
 if %AUDIT_EXIT% EQU 0 (
     echo  Status: No vulnerabilities found.
 ) else (

@@ -100,6 +100,31 @@ Recommended local setup steps:
 - Dependency auditing with pip-audit.
 - No plaintext secret logging.
 
+## Security Report HTML Generation
+- Security workflows generate JSON first, then render HTML using sec-report-kit.
+- pip-audit workflow outputs: security_reports/pip_audit_latest.html.
+- Trivy workflow outputs: security_reports/trivy_latest.html.
+- Both HTML files are uploaded in the workflow artifacts alongside JSON and SARIF outputs.
+- Local scripts also generate HTML from JSON:
+  - run_pip_audit.bat / run_pip_audit.sh
+  - run_trivy.bat / run_trivy.sh
+  - one-command wrapper: run_security_audits.bat / run_security_audits.sh
+
+## MCP Server: sec-report-kit
+Install sec-report-kit locally:
+
+```bash
+pip install sec-report-kit
+```
+
+Configured MCP server command:
+
+```bash
+srk mcp serve --transport stdio
+```
+
+Workspace configuration is stored in .vscode/mcp.json.
+
 ## Milestones
 - M1: Registry and schema baseline
 - M2: Router core and CLI

@@ -38,6 +38,9 @@ jobs:
       - name: Install project and dev dependencies
         run: pip install -e ".[dev]"
 
+      - name: Install sec-report-kit
+        run: pip install sec-report-kit==0.1.4
+
       - name: Upgrade pip tooling
         run: python -m pip install --upgrade pip
 
@@ -60,6 +63,13 @@ jobs:
             --format=cyclonedx-json \
             --output=security_reports/pip_audit_cyclonedx_latest.json \
             --progress-spinner=off || true
+
+      - name: Render pip-audit HTML report (sec-report-kit)
+        run: |
+          srk render pip-audit \
+            --input security_reports/pip_audit_latest.json \
+            --output security_reports/pip_audit_latest.html \
+            --target pyproject.toml
 
       - name: Run pip-audit (exit non-zero on findings — CI gate)
         run: |

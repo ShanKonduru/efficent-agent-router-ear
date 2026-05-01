@@ -39,6 +39,8 @@ set TIMESTAMP=%DT:~0,8%_%DT:~8,6%
 
 set REPORT_JSON=%REPORTS_DIR%\trivy_%TIMESTAMP%.json
 set LATEST_JSON=%REPORTS_DIR%\trivy_latest.json
+set REPORT_HTML=%REPORTS_DIR%\trivy_%TIMESTAMP%.html
+set LATEST_HTML=%REPORTS_DIR%\trivy_latest.html
 
 if exist ".trivyignore" (
     set "IGNOREFILE_ARG=--ignorefile .trivyignore"
@@ -66,10 +68,38 @@ set TRIVY_EXIT=%ERRORLEVEL%
 
 copy /Y "%REPORT_JSON%"  "%LATEST_JSON%"  >nul 2>&1
 
+where srk >nul 2>&1
+if %ERRORLEVEL% NEQ 0 (
+    where python >nul 2>&1
+    if %ERRORLEVEL% EQU 0 (
+        echo [INFO] sec-report-kit not found. Installing with python -m pip...
+        python -m pip install sec-report-kit >nul
+    )
+)
+
+set RENDER_EXIT=0
+where srk >nul 2>&1
+if %ERRORLEVEL% EQU 0 (
+    srk render trivy --input "%REPORT_JSON%" --output "%REPORT_HTML%" --target .
+    set RENDER_EXIT=%ERRORLEVEL%
+    if !RENDER_EXIT! EQU 0 (
+        copy /Y "%REPORT_HTML%" "%LATEST_HTML%" >nul
+    )
+) else (
+    echo [WARN] Unable to find srk after install attempt. HTML report not generated.
+    set RENDER_EXIT=2
+)
+
+if %TRIVY_EXIT% EQU 0 if NOT %RENDER_EXIT% EQU 0 set TRIVY_EXIT=%RENDER_EXIT%
+
 echo.
 echo ============================================================
 echo  Trivy reports written to %REPORTS_DIR%\
 echo    JSON  : %REPORT_JSON%
+if %RENDER_EXIT% EQU 0 (
+    echo    HTML  : %REPORT_HTML%
+    echo    Latest: %LATEST_HTML%
+)
 if %TRIVY_EXIT% EQU 0 (
     echo  Status: No HIGH/CRITICAL findings.
 ) else (

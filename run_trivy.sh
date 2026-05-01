@@ -28,6 +28,8 @@ mkdir -p "$REPORTS_DIR"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 REPORT_JSON="${REPORTS_DIR}/trivy_${TIMESTAMP}.json"
 LATEST_JSON="${REPORTS_DIR}/trivy_latest.json"
+REPORT_HTML="${REPORTS_DIR}/trivy_${TIMESTAMP}.html"
+LATEST_HTML="${REPORTS_DIR}/trivy_latest.html"
 
 IGNORE_FLAG=""
 if [[ -f ".trivyignore" ]]; then
@@ -55,10 +57,37 @@ TRIVY_EXIT=$?
 
 cp "$REPORT_JSON"  "$LATEST_JSON"
 
+if ! command -v srk &>/dev/null; then
+    if command -v python &>/dev/null; then
+        echo "[INFO] sec-report-kit not found. Installing with python -m pip..."
+        python -m pip install sec-report-kit >/dev/null
+    fi
+fi
+
+RENDER_EXIT=0
+if command -v srk &>/dev/null; then
+    srk render trivy --input "$REPORT_JSON" --output "$REPORT_HTML" --target .
+    RENDER_EXIT=$?
+    if [[ $RENDER_EXIT -eq 0 ]]; then
+        cp "$REPORT_HTML" "$LATEST_HTML"
+    fi
+else
+    echo "[WARN] Unable to find srk after install attempt. HTML report not generated."
+    RENDER_EXIT=2
+fi
+
+if [[ $TRIVY_EXIT -eq 0 && $RENDER_EXIT -ne 0 ]]; then
+    TRIVY_EXIT=$RENDER_EXIT
+fi
+
 echo
 echo "============================================================"
 echo " Trivy reports written to ${REPORTS_DIR}/"
 echo "   JSON  : ${REPORT_JSON}"
+if [[ $RENDER_EXIT -eq 0 ]]; then
+    echo "   HTML  : ${REPORT_HTML}"
+    echo "   Latest: ${LATEST_HTML}"
+fi
 if [[ $TRIVY_EXIT -eq 0 ]]; then
     echo " Status: No HIGH/CRITICAL findings."
 else
