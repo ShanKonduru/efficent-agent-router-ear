@@ -8,10 +8,10 @@ name: Publish - PyPI (Production Release)
 #                    Scope: "Entire account" OR scoped to this project.
 #
 # OIDC trusted publishing is preferred over API tokens.
-# Configure via: https://pypi.org/manage/project/ear-shankonduru/settings/publishing/
+# Configure via: https://pypi.org/manage/project/efficient-agent-router-ear/settings/publishing/
 #
 # After publishing:
-#   pip install ear-shankonduru==<version>
+#   pip install efficient-agent-router-ear==<version>
 
 on:
   push:

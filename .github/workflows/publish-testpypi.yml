@@ -7,7 +7,7 @@ name: Publish - TestPyPI (Check-in)
 #                         Scope: "Entire account" OR scoped to this project.
 #
 # After publishing:
-#   pip install -i https://test.pypi.org/simple/ ear-shankonduru==<version>
+#   pip install -i https://test.pypi.org/simple/ efficient-agent-router-ear==<version>
 
 on:
   push:
