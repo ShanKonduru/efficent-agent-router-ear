@@ -90,7 +90,7 @@ Environment variables (minimum):
 Recommended local setup steps:
 1. Create and activate virtual environment.
 2. Install dependencies.
-3. Copy `.env.example` or `env.sample` to `.env` and set values.
+3. Copy `.env.example` to `.env` and set values.
 4. Run tests and quality checks before first run.
 
 ## Quality and Security Requirements
