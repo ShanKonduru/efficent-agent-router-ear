@@ -8,10 +8,10 @@ name: Publish - PyPI (Production Release)
 #                    Scope: "Entire account" OR scoped to this project.
 #
 # OIDC trusted publishing is preferred over API tokens.
-# Configure via: https://pypi.org/manage/project/ear/settings/publishing/
+# Configure via: https://pypi.org/manage/project/ear-shankonduru/settings/publishing/
 #
 # After publishing:
-#   pip install ear==<version>
+#   pip install ear-shankonduru==<version>
 
 on:
   push:

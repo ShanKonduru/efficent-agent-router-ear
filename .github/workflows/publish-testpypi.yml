@@ -7,7 +7,7 @@ name: Publish - TestPyPI (Check-in)
 #                         Scope: "Entire account" OR scoped to this project.
 #
 # After publishing:
-#   pip install -i https://test.pypi.org/simple/ ear==<version>
+#   pip install -i https://test.pypi.org/simple/ ear-shankonduru==<version>
 
 on:
   push:
@@ -24,7 +24,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write   # For OIDC trusted publishing (alternative to API token)
+  id-token: write   # Needed for OIDC trusted publishing
 
 jobs:
   test-gate:
@@ -58,6 +58,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: test-gate
     environment: testpypi   # Optional: configure as a GitHub environment with protection rules
+    env:
+      TEST_PYPI_API_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
 
     steps:
       - name: Checkout repository
@@ -89,11 +91,19 @@ jobs:
           path: dist/
           retention-days: 14
 
-      - name: Publish to TestPyPI
-        if: ${{ github.event.inputs.dry_run != 'true' }}
+      - name: Publish to TestPyPI (OIDC)
+        if: github.event.inputs.dry_run != 'true' && env.TEST_PYPI_API_TOKEN == ''
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
-          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          skip-existing: true
+          verbose: true
+
+      - name: Publish to TestPyPI (API token)
+        if: github.event.inputs.dry_run != 'true' && env.TEST_PYPI_API_TOKEN != ''
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          password: ${{ env.TEST_PYPI_API_TOKEN }}
           skip-existing: true
           verbose: true
