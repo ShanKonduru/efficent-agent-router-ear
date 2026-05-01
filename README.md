@@ -49,8 +49,8 @@ Efficient Agent Router (EAR) is a Python-first orchestration service that select
 2. Run safety prechecks (injection and PII policy).
 3. Load model metadata from OpenRouter registry cache.
 4. Compute suitability score and candidate ranking.
-5. Execute via selected model and apply cascade fallback if needed.
-6. Return result with routing rationale and metric snapshot.
+5. Return model recommendation, rationale, and fallback chain (execution runtime is tracked in E10).
+6. Emit session metrics snapshot for observability.
 
 ## Routing Model
 The router evaluates candidate models using a weighted suitability function:
@@ -83,9 +83,10 @@ Expected output modes:
 - Purpose: interactive OpenRouter model table for leadership and investor demos.
 
 What it includes:
-- Live model fetch from OpenRouter (`/api/v1/models`).
+- Live model fetch from OpenRouter (`/api/v1/models`) with auto-refresh options and last-updated indicator.
 - Search, provider pills, min-context, max-cost, and priced/unpriced filters.
-- Sortable KPI table with model selection checkboxes.
+- Radio filter for free vs paid models.
+- Excel-style sortable table with per-column filters.
 - Side-by-side comparison cards for selected models (up to 4).
 
 How to run:
@@ -151,6 +152,8 @@ Workspace configuration is stored in .vscode/mcp.json.
 - M2: Router core and CLI
 - M3: Guardrails and metrics
 - M4: MCP server and CI/CD gates
+- M5: Execution runtime and adaptive routing intelligence (planned)
+- M6: Leadership/investor demo frontend (in progress)
 
 ## Contributing Expectations
 - Preserve clean architecture boundaries.

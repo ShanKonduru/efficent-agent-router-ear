@@ -16,7 +16,7 @@
 7. MCP Server and Tool Exposure (`[x]`)
 8. CI/CD and Security Automation (`[x]`)
 9. Execution Plane and Adaptive Routing Intelligence (`[ ]`)
-10. Leadership Demo Frontend and GTM Showcase (`[ ]`)
+10. Leadership Demo Frontend and GTM Showcase (`[~]`)
 
 ## Recommended Execution Order (Current State)
 1. E10 F9: implement true route-and-execute runtime (LiteLLM + fallback + real telemetry)
@@ -144,13 +144,13 @@
   - T9.9 Build benchmark suite versus heuristic baseline (3 pts) `[ ]`
 
 ### F11. Leadership Demo Frontend
-- Story US-11 (5 pts) `[ ]`: As a leadership stakeholder, I want an interactive EAR demo that clearly shows ROI and risk reduction.
+- Story US-11 (5 pts) `[~]`: As a leadership stakeholder, I want an interactive EAR demo that clearly shows ROI and risk reduction.
 - Acceptance highlights:
   - End-to-end scenario runs show selected model, response, fallback trail, and safety events.
   - Baseline versus EAR mode shows measurable deltas for cost, latency, and reliability.
   - Executive view is presentation-ready across desktop and mobile.
 - Tasks:
-  - T10.1 Build responsive demo UI shell and scenario flow (3 pts) `[ ]`
+  - T10.1 Build responsive demo UI shell and scenario flow (3 pts) `[~]`
   - T10.2 Add backend API bridge and deterministic replay data (2 pts) `[ ]`
   - T10.3 Implement KPI dashboards and storytelling panels (2 pts) `[ ]`
   - T10.4 Add one-click demo script and smoke tests (1 pt) `[ ]`
@@ -188,7 +188,7 @@
   - Route decisions execute real model calls with resilient fallback
   - Semantic intent/injection controls validated against benchmark set
 
-### M6. Frontend and Leadership Demo (Target: Week 8) `[ ]`
+### M6. Frontend and Leadership Demo (Target: Week 8) `[~]`
 - Scope: F11
 - Exit criteria:
   - Investor/leadership demo app shows measurable EAR value narrative
