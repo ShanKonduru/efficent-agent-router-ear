@@ -111,7 +111,7 @@
 - Tasks:
   - T8.1 Add GitHub Actions workflow (2 pts) `[x]`
   - T8.2 Configure coverage and security thresholds (1 pt) `[x]`
-  - T8.3 Validate workflow with sample failure case (1 pt) `[ ]`
+  - T8.3 Validate workflow with sample failure case (1 pt) `[x]`
   - T8.4 Verify ongoing branch synchronization policy for `master` and `main` (1 pt) `[x]`
 
 ## Milestones
@@ -135,7 +135,7 @@
   - injection and PII policy enforced
   - session metric reporting available
 
-### M4. MCP and Automation (Target: Week 5) `[~]`
+### M4. MCP and Automation (Target: Week 5) `[x]`
 - Scope: F7, F8
 - Exit criteria:
   - MCP tool available

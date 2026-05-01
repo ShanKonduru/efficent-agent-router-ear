@@ -49,6 +49,7 @@ Before cutting a release, confirm all of the following:
 4. Validate dependency/security checks:
    - pip-audit workflow is green
    - trivy workflow is green
+   - no temporary vulnerability ignore flags are active in CI gate steps
 
 ### Phase 2 - Preflight
 

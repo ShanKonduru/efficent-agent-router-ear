@@ -276,7 +276,7 @@ Track delivery using the status column for every item.
 | --- | --- | --- | --- | --- | --- |
 | T8.1 | Add GitHub Actions workflow | Trigger on PR and push to main; run on ubuntu-latest with Python 3.12 | P2 | 2 | `[x]` |
 | T8.2 | Configure test, coverage, and security steps | `pytest --cov=src/ear --cov-fail-under=100`; `bandit -r src/`; `pip-audit` | P2 | 1 | `[x]` |
-| T8.3 | Validate workflow with forced failure | Temporarily drop coverage below threshold; confirm build breaks | P2 | 1 | `[ ]` |
+| T8.3 | Validate workflow with forced failure | Temporarily drop coverage below threshold; confirm build breaks | P2 | 1 | `[x]` |
 
 ---
 
@@ -296,6 +296,6 @@ Track delivery using the status column for every item.
 
 From the current project state, the remaining execution order is:
 
-1. E9 — CI/CD forced-failure validation (T8.3)
-2. Security policy clean-up (remove temporary pip-audit CVE ignore when upstream fix is available)
-3. Release notes and release artifact governance updates
+1. Release execution for v0.10.1 using the current playbook checklist
+2. Keep branch synchronization policy (`master` and `main`) enforced for every release change
+3. Continue dependency and security posture monitoring in scheduled workflows

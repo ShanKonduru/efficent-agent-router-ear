@@ -41,7 +41,6 @@ addopts = "--cov=ear --cov-branch --cov-report=term-missing"
 [tool.coverage.run]
 source = ["ear"]
 branch = true
-omit = ["src/ear/mcp_server.py"]
 disable_warnings = ["module-not-measured"]
 
 [tool.coverage.report]

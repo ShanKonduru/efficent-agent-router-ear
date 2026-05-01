@@ -53,6 +53,52 @@ class TestEARMCPService:
 
 
 class TestMCPServerBootstrap:
+    async def test_build_server_handlers_delegate_to_service(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        class _StubFastMCP:
+            def __init__(self, _name: str) -> None:
+                self.tools: dict[str, object] = {}
+                self.resources: dict[str, object] = {}
+
+            def tool(self, name: str, description: str):
+                def _decorator(fn):
+                    self.tools[name] = fn
+                    return fn
+
+                return _decorator
+
+            def resource(self, uri: str, name: str, description: str, mime_type: str):
+                def _decorator(fn):
+                    self.resources[uri] = fn
+                    return fn
+
+                return _decorator
+
+            def run(self, transport: str = "stdio") -> None:
+                return None
+
+        class _StubService:
+            async def route_and_execute(self, task_description: str, budget_priority: BudgetPriority):
+                return {
+                    "selected_model": "openai/gpt-4o-mini",
+                    "fallback_chain": [],
+                    "task_type": "reasoning",
+                    "suitability_score": 0.91,
+                    "reason": f"handled:{task_description}:{budget_priority.value}",
+                }
+
+            def model_stats(self) -> dict[str, int]:
+                return {"total_calls": 7}
+
+        monkeypatch.setattr(mcp_module, "FastMCP", _StubFastMCP)
+        server = mcp_module._build_server(_StubService())
+
+        tool = server.tools["route_and_execute"]
+        result = await tool("summarize", BudgetPriority.LOW)
+        assert result["reason"] == "handled:summarize:low"
+
+        resource = server.resources["ear://session/stats"]
+        assert resource() == '{"total_calls": 7}'
+
     def test_build_server_returns_fastmcp_instance(self) -> None:
         server = mcp_module._build_server()
         assert server is not None

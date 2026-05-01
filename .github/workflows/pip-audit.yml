@@ -51,7 +51,6 @@ jobs:
         # Continue on findings — the SARIF upload below gates the result
         run: |
           python -m pip_audit \
-            --ignore-vuln=CVE-2026-3219 \
             --format=json \
             --output=security_reports/pip_audit_latest.json \
             --progress-spinner=off || true
@@ -59,7 +58,6 @@ jobs:
       - name: Run pip-audit (CycloneDX SBOM)
         run: |
           python -m pip_audit \
-            --ignore-vuln=CVE-2026-3219 \
             --format=cyclonedx-json \
             --output=security_reports/pip_audit_cyclonedx_latest.json \
             --progress-spinner=off || true
@@ -77,7 +75,6 @@ jobs:
       - name: Run pip-audit (exit non-zero on findings — CI gate)
         run: |
           python -m pip_audit \
-            --ignore-vuln=CVE-2026-3219 \
             --progress-spinner=off
 
       - name: Upload pip-audit reports as artefact
