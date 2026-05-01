@@ -1,31 +1,114 @@
 # Copilot Prompts Guide
 
-A collection of 9 reusable Copilot prompts for common developer workflows. All prompts are stored in your VS Code roaming profile and available across all projects.
+A collection of 10 reusable Copilot prompts for common developer workflows. All prompts are stored in your VS Code roaming profile and available across all projects.
 
 **Location:** `~/.config/Code/User/prompts/` (or equivalent on your OS)
 
 ---
 
-## ⚡ Quick Start: Setup
+## 🚀 Blank Project? Start Here
 
-Before using the prompts, ensure all dependencies are installed:
+If you're starting a **brand new project** with **no scaffolding**:
+
+```
+/init-project python "my-project"
+```
+
+This initializes everything:
+- ✅ Project structure (src/, tests/, docs/)
+- ✅ Config files (pyproject.toml, package.json, Cargo.toml)
+- ✅ Git repository
+- ✅ All dev dependencies installed
+- ✅ First commit created
+
+After initialization, use any other prompts!
+
+---
+
+## ⚡ Existing Project? Setup Here
+
+For existing projects, ensure all dependencies are installed:
 
 ```
 /setup-dev-environment
 ```
 
-This installs:
-- Python dev tools (pytest, bandit, pylint, black, mypy, pip-audit)
-- Optional system tools (trivy for filesystem scanning)
-
-**One-liner:**
-```bash
-pip install -e ".[dev]"
-```
+Then use prompts freely.
 
 ---
 
-## 0. `/setup-dev-environment` — One-Time Dev Setup
+## 0. `/init-project` — Bootstrap New Projects
+
+### What It Does
+Initializes a **completely blank project** with all necessary structure and dependencies:
+- Creates directory structure (src/, tests/, docs/)
+- Generates config files (pyproject.toml, package.json, or Cargo.toml)
+- Installs all dev dependencies
+- Initializes git repository
+- Creates initial commit
+- Project is immediately ready to use with other prompts
+
+### Supported Project Types
+- **Python** (default)
+- **Node.js**
+- **Rust**
+
+### How to Use
+```
+/init-project                                  # Interactive, asks you
+/init-project python                           # Python project
+/init-project node                             # Node.js project
+/init-project rust                             # Rust project
+/init-project python "my-cool-project"         # Python + custom name
+```
+
+### What Gets Created
+
+**Python project structure:**
+```
+project-name/
+├── src/
+│   └── project_name/
+│       └── __init__.py
+├── tests/
+│   ├── __init__.py
+│   └── test_sample.py
+├── docs/
+├── pyproject.toml
+├── README.md
+├── .gitignore
+└── .git/ (initialized)
+```
+
+**Includes:**
+- ✅ pytest setup for testing
+- ✅ All dev dependencies pre-configured
+- ✅ Coverage reporting ready
+- ✅ Code quality tools (black, mypy, pylint, bandit)
+- ✅ Git initialized with first commit
+- ✅ README with next steps
+
+### Example Workflow
+
+```bash
+# 1. Create blank project
+/init-project python "my-router"
+
+# 2. Now ALL other prompts work immediately:
+/run-tests
+/quick-code-review
+/create-feature-branch add-feature
+/release 0.1.0 "Initial release"
+```
+
+### Use When
+- Starting a new project from scratch
+- Creating project templates
+- Onboarding new team members
+
+---
+
+## 1. `/setup-dev-environment` — Install Dev Tools
 
 ### What It Does
 Installs all Python development tools and optional system utilities needed by the other prompts:
@@ -43,7 +126,7 @@ Installs all Python development tools and optional system utilities needed by th
 ```
 
 ### When to Run
-- ✅ First time setting up the project
+- ✅ First time setting up an existing project
 - ✅ After cloning a fresh repo
 - ✅ When new developers join the team
 
@@ -322,7 +405,8 @@ Creates and checks out a new branch following Git Flow conventions:
 
 | Prompt | Use Case | Time Saved |
 |--------|----------|-----------|
-| `/setup-dev-environment` | Install all dev tools (run once) | 10 min setup |
+| `/init-project` | Bootstrap new blank projects | 30 min setup |
+| `/setup-dev-environment` | Install dev tools (existing projects) | 10 min setup |
 | `/release` | Bump version, tag, push | 5 min/week |
 | `/run-tests` | Verify quality before commit | 2 min/day |
 | `/run-security-audit` | Find vulnerabilities early | 3 min/week |
