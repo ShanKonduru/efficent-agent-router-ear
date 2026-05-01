@@ -71,6 +71,9 @@ jobs:
             --output security_reports/pip_audit_latest.html \
             --target pyproject.toml
 
+      - name: Verify pip-audit HTML report exists
+        run: test -f security_reports/pip_audit_latest.html
+
       - name: Run pip-audit (exit non-zero on findings — CI gate)
         run: |
           python -m pip_audit \

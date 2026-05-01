@@ -42,6 +42,7 @@ jobs:
           python -m pytest tests/
           --cov=ear
           --cov-branch
+          --cov-fail-under=100
           --cov-report=term-missing
           --cov-report=xml:coverage_reports/coverage.xml
           --cov-report=json:coverage_reports/coverage.json

@@ -23,11 +23,11 @@ Track delivery using the status column for every item.
 | E1 | Foundation and Project Setup | P1 | 5 | M1 | `[x]` |
 | E2 | Model Registry and Metadata Management | P1 | 10 | M1 | `[x]` |
 | E3 | Predictive Routing Engine | P1 | 13 | M2 | `[x]` |
-| E4 | CLI Experience and Operator Workflow | P1 | 6 | M2 | `[ ]` |
+| E4 | CLI Experience and Operator Workflow | P1 | 6 | M2 | `[x]` |
 | E5 | Reliability and Cascade Fallback | P1 | 8 | M2 | `[x]` |
-| E6 | Safety and Guardrails | P2 | 9 | M3 | `[ ]` |
-| E7 | Observability and Cost/Latency Metrics | P2 | 5 | M3 | `[ ]` |
-| E8 | MCP Server and Tool Exposure | P3 | 8 | M4 | `[ ]` |
+| E6 | Safety and Guardrails | P2 | 9 | M3 | `[x]` |
+| E7 | Observability and Cost/Latency Metrics | P2 | 5 | M3 | `[x]` |
+| E8 | MCP Server and Tool Exposure | P3 | 8 | M4 | `[x]` |
 | E9 | CI/CD and Security Automation | P2 | 4 | M4 | `[~]` |
 | | **Total** | | **68** | | |
 
@@ -38,8 +38,8 @@ Track delivery using the status column for every item.
 | Milestone | Target | Epics | Exit Criteria | Status |
 | --- | --- | --- | --- | --- |
 | M1 — Foundation and Registry | Week 1 | E1, E2 | Skeleton merged; registry client and cache tested | `[x]` |
-| M2 — Router Core and CLI | Week 2–3 | E3, E4, E5 | `ear route` command stable; fallback tested; routing at 100% coverage | `[~]` |
-| M3 — Guardrails and Observability | Week 4 | E6, E7 | Injection and PII policy enforced; metrics reporting available | `[ ]` |
+| M2 — Router Core and CLI | Week 2–3 | E3, E4, E5 | `ear route` command stable; fallback tested; routing at 100% coverage | `[x]` |
+| M3 — Guardrails and Observability | Week 4 | E6, E7 | Injection and PII policy enforced; metrics reporting available | `[x]` |
 | M4 — MCP and Automation | Week 5 | E8, E9 | MCP tool live; CI pipeline gates passing | `[~]` |
 
 ---
@@ -134,7 +134,7 @@ Track delivery using the status column for every item.
 
 | ID | User Story | Priority | Points | Status |
 | --- | --- | --- | --- | --- |
-| US-3 | As a developer, I want a simple CLI command to route and execute prompts so I can use EAR from my terminal. | P1 | 5 | `[ ]` |
+| US-3 | As a developer, I want a simple CLI command to route and execute prompts so I can use EAR from my terminal. | P1 | 5 | `[x]` |
 
 **Acceptance Criteria**
 - Given `ear route "my prompt" --task coding --budget medium`, when executed, then the selected model and reasoning are printed.
@@ -144,10 +144,10 @@ Track delivery using the status column for every item.
 
 | Task ID | Task | Sub-tasks | Priority | Points | Status |
 | --- | --- | --- | --- | --- | --- |
-| T3.1 | Implement Typer app with `route` command | Accept `prompt`, `--task`, `--budget`, `--json` options; wire to router engine | P1 | 2 | `[ ]` |
-| T3.2 | Implement `inspect-models` and `stats` commands | `inspect-models` lists registry; `stats` prints session metrics summary | P2 | 2 | `[ ]` |
-| T3.3 | Add output formatter | Human-readable table for terminal; compact JSON for `--json` mode | P1 | 1 | `[ ]` |
-| T3.4 | CLI integration tests | Test each command path, error conditions, and JSON output shape | P1 | 2 | `[ ]` |
+| T3.1 | Implement Typer app with `route` command | Accept `prompt`, `--task`, `--budget`, `--json` options; wire to router engine | P1 | 2 | `[x]` |
+| T3.2 | Implement `inspect-models` and `stats` commands | `inspect-models` lists registry; `stats` prints session metrics summary | P2 | 2 | `[x]` |
+| T3.3 | Add output formatter | Human-readable table for terminal; compact JSON for `--json` mode | P1 | 1 | `[x]` |
+| T3.4 | CLI integration tests | Test each command path, error conditions, and JSON output shape | P1 | 2 | `[x]` |
 
 ---
 
@@ -186,7 +186,7 @@ Track delivery using the status column for every item.
 
 | ID | User Story | Priority | Points | Status |
 | --- | --- | --- | --- | --- |
-| US-4 | As a security owner, I want unsafe prompts and PII to be handled safely before model routing so no sensitive data leaks to unvetted providers. | P2 | 8 | `[ ]` |
+| US-4 | As a security owner, I want unsafe prompts and PII to be handled safely before model routing so no sensitive data leaks to unvetted providers. | P2 | 8 | `[x]` |
 
 **Acceptance Criteria**
 - Given a prompt containing a jailbreak pattern, when the guardrail runs, then routing is blocked and a reason code is returned.
@@ -195,10 +195,10 @@ Track delivery using the status column for every item.
 
 | Task ID | Task | Sub-tasks | Priority | Points | Status |
 | --- | --- | --- | --- | --- | --- |
-| T4.1 | Implement prompt injection precheck | Rule-based pattern library; configurable sensitivity threshold; return signal with reason | P2 | 3 | `[ ]` |
-| T4.2 | Implement PII detector and provider policy matrix | Detect common PII patterns; map detection to provider allowlist; block disallowed candidates | P2 | 3 | `[ ]` |
-| T4.3 | Add sanitization layer before model call | Strip or mask detected PII for logging; never log raw prompts in plaintext | P2 | 1 | `[ ]` |
-| T4.4 | Policy-enforcement unit tests | Test each injection pattern, PII type, and allowlist filtering scenario | P2 | 3 | `[ ]` |
+| T4.1 | Implement prompt injection precheck | Rule-based pattern library; configurable sensitivity threshold; return signal with reason | P2 | 3 | `[x]` |
+| T4.2 | Implement PII detector and provider policy matrix | Detect common PII patterns; map detection to provider allowlist; block disallowed candidates | P2 | 3 | `[x]` |
+| T4.3 | Add sanitization layer before model call | Strip or mask detected PII for logging; never log raw prompts in plaintext | P2 | 1 | `[x]` |
+| T4.4 | Policy-enforcement unit tests | Test each injection pattern, PII type, and allowlist filtering scenario | P2 | 3 | `[x]` |
 
 ---
 
@@ -212,7 +212,7 @@ Track delivery using the status column for every item.
 
 | ID | User Story | Priority | Points | Status |
 | --- | --- | --- | --- | --- |
-| US-6 | As an operator, I want to track cost and latency by session and model so I can monitor token burn and performance. | P2 | 3 | `[ ]` |
+| US-6 | As an operator, I want to track cost and latency by session and model so I can monitor token burn and performance. | P2 | 3 | `[x]` |
 
 **Acceptance Criteria**
 - Given a route decision is made, when it completes, then cost and latency are emitted to the collector.
@@ -221,10 +221,10 @@ Track delivery using the status column for every item.
 
 | Task ID | Task | Sub-tasks | Priority | Points | Status |
 | --- | --- | --- | --- | --- | --- |
-| T6.1 | Define `RouteMetric` and `SessionSummary` schemas | Pydantic models for per-call and aggregated metrics | P2 | 1 | `[ ]` |
-| T6.2 | Implement in-process metrics collector | Accumulate cost and latency; expose session totals; thread-safe reset | P2 | 2 | `[ ]` |
-| T6.3 | Hook collector into router and fallback pipeline | Emit metrics on success and on each fallback step | P2 | 1 | `[ ]` |
-| T6.4 | Unit tests for accumulation and reset | Test multiple route calls; assert totals; assert reset clears state | P2 | 2 | `[ ]` |
+| T6.1 | Define `RouteMetric` and `SessionSummary` schemas | Pydantic models for per-call and aggregated metrics | P2 | 1 | `[x]` |
+| T6.2 | Implement in-process metrics collector | Accumulate cost and latency; expose session totals; thread-safe reset | P2 | 2 | `[x]` |
+| T6.3 | Hook collector into router and fallback pipeline | Emit metrics on success and on each fallback step | P2 | 1 | `[x]` |
+| T6.4 | Unit tests for accumulation and reset | Test multiple route calls; assert totals; assert reset clears state | P2 | 2 | `[x]` |
 
 ---
 
@@ -238,7 +238,7 @@ Track delivery using the status column for every item.
 
 | ID | User Story | Priority | Points | Status |
 | --- | --- | --- | --- | --- |
-| US-7 | As an agent consumer, I want to call EAR as an MCP tool so I can route prompts programmatically from another agent. | P3 | 5 | `[ ]` |
+| US-7 | As an agent consumer, I want to call EAR as an MCP tool so I can route prompts programmatically from another agent. | P3 | 5 | `[x]` |
 
 **Acceptance Criteria**
 - Given an MCP client calls `route_and_execute` with `task_description` and `budget_priority`, then the server returns the selected model ID and routing rationale.
@@ -247,10 +247,10 @@ Track delivery using the status column for every item.
 
 | Task ID | Task | Sub-tasks | Priority | Points | Status |
 | --- | --- | --- | --- | --- | --- |
-| T7.1 | Build MCP server transport layer | Wire stdio transport; register tool and resource handlers; delegate to router engine | P3 | 2 | `[ ]` |
-| T7.2 | Implement `route_and_execute` tool endpoint | Validate typed input with Pydantic; call router; return structured response | P3 | 2 | `[ ]` |
-| T7.3 | Implement model stats resource endpoint | Return current `SessionSummary` as MCP resource | P3 | 1 | `[ ]` |
-| T7.4 | MCP integration tests | Test tool call, resource read, missing field errors, and engine failure propagation | P3 | 3 | `[ ]` |
+| T7.1 | Build MCP server transport layer | Wire stdio transport; register tool and resource handlers; delegate to router engine | P3 | 2 | `[x]` |
+| T7.2 | Implement `route_and_execute` tool endpoint | Validate typed input with Pydantic; call router; return structured response | P3 | 2 | `[x]` |
+| T7.3 | Implement model stats resource endpoint | Return current `SessionSummary` as MCP resource | P3 | 1 | `[x]` |
+| T7.4 | MCP integration tests | Test tool call, resource read, missing field errors, and engine failure propagation | P3 | 3 | `[x]` |
 
 ---
 
@@ -274,7 +274,7 @@ Track delivery using the status column for every item.
 | Task ID | Task | Sub-tasks | Priority | Points | Status |
 | --- | --- | --- | --- | --- | --- |
 | T8.1 | Add GitHub Actions workflow | Trigger on PR and push to main; run on ubuntu-latest with Python 3.12 | P2 | 2 | `[x]` |
-| T8.2 | Configure test, coverage, and security steps | `pytest --cov=src/ear --cov-fail-under=100`; `bandit -r src/`; `pip-audit` | P2 | 1 | `[~]` |
+| T8.2 | Configure test, coverage, and security steps | `pytest --cov=src/ear --cov-fail-under=100`; `bandit -r src/`; `pip-audit` | P2 | 1 | `[x]` |
 | T8.3 | Validate workflow with forced failure | Temporarily drop coverage below threshold; confirm build breaks | P2 | 1 | `[ ]` |
 
 ---

@@ -68,6 +68,9 @@ jobs:
             --output security_reports/trivy_latest.html \
             --target .
 
+      - name: Verify Trivy HTML report exists
+        run: test -f security_reports/trivy_latest.html
+
       # ----------------------------------------------------------------
       # SARIF report — uploaded to GitHub Security / Code Scanning tab
       # ----------------------------------------------------------------

@@ -40,15 +40,39 @@ class GuardrailsChecker:
 
     def check(self, prompt: str) -> GuardrailResult:
         """Return a GuardrailResult indicating whether the prompt is safe to route."""
-        raise NotImplementedError
+        injection_detected = self._detect_injection(prompt)
+        pii_detected = self._detect_pii(prompt)
+
+        if injection_detected:
+            return GuardrailResult(
+                passed=False,
+                injection_detected=True,
+                pii_detected=pii_detected,
+                reason="Prompt injection pattern detected.",
+            )
+
+        if pii_detected:
+            return GuardrailResult(
+                passed=True,
+                injection_detected=False,
+                pii_detected=True,
+                reason="PII detected; restrict routing to vetted providers.",
+            )
+
+        return GuardrailResult(
+            passed=True,
+            injection_detected=False,
+            pii_detected=False,
+            reason=None,
+        )
 
     def _detect_injection(self, prompt: str) -> bool:
         """Return True if any injection pattern matches the prompt."""
-        raise NotImplementedError
+        return any(pattern.search(prompt) is not None for pattern in INJECTION_PATTERNS)
 
     def _detect_pii(self, prompt: str) -> bool:
         """Return True if any PII pattern matches the prompt."""
-        raise NotImplementedError
+        return any(pattern.search(prompt) is not None for pattern in PII_PATTERNS)
 
     def filter_candidates_for_pii(
         self,
@@ -56,4 +80,15 @@ class GuardrailsChecker:
         pii_detected: bool,
     ) -> list[str]:
         """If PII is detected, restrict candidates to vetted providers only."""
-        raise NotImplementedError
+        if not pii_detected:
+            return list(model_ids)
+
+        filtered = [
+            model_id
+            for model_id in model_ids
+            if model_id.split("/", 1)[0].lower() in PII_VETTED_PROVIDERS
+        ]
+
+        if not filtered:
+            logger.warning("PII detected, but no vetted providers remained after filtering.")
+        return filtered
