@@ -84,11 +84,13 @@ Environment variables (minimum):
 - EAR_REGISTRY_TTL_SECONDS
 - EAR_DEFAULT_BUDGET
 - EAR_MAX_RETRIES
+- EAR_OPENROUTER_BASE_URL
+- EAR_REQUEST_TIMEOUT_SECONDS
 
 Recommended local setup steps:
 1. Create and activate virtual environment.
 2. Install dependencies.
-3. Populate .env with OPENROUTER_API_KEY.
+3. Copy `.env.example` or `env.sample` to `.env` and set values.
 4. Run tests and quality checks before first run.
 
 ## Quality and Security Requirements
