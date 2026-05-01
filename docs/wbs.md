@@ -20,27 +20,27 @@ Track delivery using the status column for every item.
 
 | ID | Epic | Priority | Points | Milestone | Status |
 | --- | --- | --- | --- | --- | --- |
-| E1 | Foundation and Project Setup | P1 | 5 | M1 | `[ ]` |
-| E2 | Model Registry and Metadata Management | P1 | 10 | M1 | `[ ]` |
-| E3 | Predictive Routing Engine | P1 | 13 | M2 | `[ ]` |
+| E1 | Foundation and Project Setup | P1 | 5 | M1 | `[x]` |
+| E2 | Model Registry and Metadata Management | P1 | 10 | M1 | `[x]` |
+| E3 | Predictive Routing Engine | P1 | 13 | M2 | `[x]` |
 | E4 | CLI Experience and Operator Workflow | P1 | 6 | M2 | `[ ]` |
-| E5 | Reliability and Cascade Fallback | P1 | 8 | M2 | `[ ]` |
+| E5 | Reliability and Cascade Fallback | P1 | 8 | M2 | `[x]` |
 | E6 | Safety and Guardrails | P2 | 9 | M3 | `[ ]` |
 | E7 | Observability and Cost/Latency Metrics | P2 | 5 | M3 | `[ ]` |
 | E8 | MCP Server and Tool Exposure | P3 | 8 | M4 | `[ ]` |
-| E9 | CI/CD and Security Automation | P2 | 4 | M4 | `[ ]` |
+| E9 | CI/CD and Security Automation | P2 | 4 | M4 | `[~]` |
 | | **Total** | | **68** | | |
 
 ---
 
 ## Milestone Map
 
-| Milestone | Target | Epics | Exit Criteria |
-| --- | --- | --- | --- |
-| M1 — Foundation and Registry | Week 1 | E1, E2 | Skeleton merged; registry client and cache tested |
-| M2 — Router Core and CLI | Week 2–3 | E3, E4, E5 | `ear route` command stable; fallback tested; routing at 100% coverage |
-| M3 — Guardrails and Observability | Week 4 | E6, E7 | Injection and PII policy enforced; metrics reporting available |
-| M4 — MCP and Automation | Week 5 | E8, E9 | MCP tool live; CI pipeline gates passing |
+| Milestone | Target | Epics | Exit Criteria | Status |
+| --- | --- | --- | --- | --- |
+| M1 — Foundation and Registry | Week 1 | E1, E2 | Skeleton merged; registry client and cache tested | `[x]` |
+| M2 — Router Core and CLI | Week 2–3 | E3, E4, E5 | `ear route` command stable; fallback tested; routing at 100% coverage | `[~]` |
+| M3 — Guardrails and Observability | Week 4 | E6, E7 | Injection and PII policy enforced; metrics reporting available | `[ ]` |
+| M4 — MCP and Automation | Week 5 | E8, E9 | MCP tool live; CI pipeline gates passing | `[~]` |
 
 ---
 
@@ -54,7 +54,7 @@ Track delivery using the status column for every item.
 
 | ID | User Story | Priority | Points | Status |
 | --- | --- | --- | --- | --- |
-| US-0 | As a developer, I want a working Python project structure with dependencies, linting, and test infrastructure so I can develop without friction. | P1 | 5 | `[ ]` |
+| US-0 | As a developer, I want a working Python project structure with dependencies, linting, and test infrastructure so I can develop without friction. | P1 | 5 | `[x]` |
 
 **Acceptance Criteria**
 - Given the repo is cloned, when `pip install -e .[dev]` runs, then all dependencies resolve without conflicts.
@@ -63,11 +63,11 @@ Track delivery using the status column for every item.
 
 | Task ID | Task | Sub-tasks | Priority | Points | Status |
 | --- | --- | --- | --- | --- | --- |
-| T0.1 | Create `src/ear/` package layout | Add `__init__.py`, `config.py`, `models.py` stubs | P1 | 1 | `[ ]` |
-| T0.2 | Create `pyproject.toml` with dependencies | Pin httpx, typer, pydantic, mcp; add dev extras for pytest, bandit, pip-audit | P1 | 1 | `[ ]` |
-| T0.3 | Create `.env.example` and config loader | Load all env vars via Pydantic BaseSettings; fail fast on missing required keys | P1 | 1 | `[ ]` |
-| T0.4 | Add `pytest.ini` / `pyproject.toml` test config | Configure asyncio mode, cov source, fail under 100% | P1 | 1 | `[ ]` |
-| T0.5 | Smoke-test the skeleton | Add a trivial test to confirm import chain works end-to-end | P1 | 1 | `[ ]` |
+| T0.1 | Create `src/ear/` package layout | Add `__init__.py`, `config.py`, `models.py` stubs | P1 | 1 | `[x]` |
+| T0.2 | Create `pyproject.toml` with dependencies | Pin httpx, typer, pydantic, mcp; add dev extras for pytest, bandit, pip-audit | P1 | 1 | `[x]` |
+| T0.3 | Create `.env.example` and config loader | Load all env vars via Pydantic BaseSettings; fail fast on missing required keys | P1 | 1 | `[x]` |
+| T0.4 | Add `pytest.ini` / `pyproject.toml` test config | Configure asyncio mode, cov source, fail under 100% | P1 | 1 | `[x]` |
+| T0.5 | Smoke-test the skeleton | Add a trivial test to confirm import chain works end-to-end | P1 | 1 | `[x]` |
 
 ---
 
@@ -81,7 +81,7 @@ Track delivery using the status column for every item.
 
 | ID | User Story | Priority | Points | Status |
 | --- | --- | --- | --- | --- |
-| US-1 | As an operator, I want live model metadata so routing decisions use real context size and pricing. | P1 | 5 | `[ ]` |
+| US-1 | As an operator, I want live model metadata so routing decisions use real context size and pricing. | P1 | 5 | `[x]` |
 
 **Acceptance Criteria**
 - Given the OpenRouter API is reachable, when the registry fetches models, then each entry maps to a typed `LLMSpec` with `id`, `context_length`, and `pricing`.
@@ -90,10 +90,10 @@ Track delivery using the status column for every item.
 
 | Task ID | Task | Sub-tasks | Priority | Points | Status |
 | --- | --- | --- | --- | --- | --- |
-| T1.1 | Implement `RegistryClient` with httpx | Add timeout, retry with exponential back-off; raise typed errors on 4xx/5xx | P1 | 3 | `[ ]` |
-| T1.2 | Implement `LLMSpec` Pydantic model and normalization | Map OpenRouter fields; coerce missing pricing to `None`; validate context_length > 0 | P1 | 2 | `[ ]` |
-| T1.3 | Implement in-memory TTL cache | Configurable TTL via env var; stale-read on refresh failure | P1 | 2 | `[ ]` |
-| T1.4 | Unit tests for registry | Mock HTTP success, 429, 500, timeout, and malformed JSON; assert cache behavior | P1 | 3 | `[ ]` |
+| T1.1 | Implement `RegistryClient` with httpx | Add timeout, retry with exponential back-off; raise typed errors on 4xx/5xx | P1 | 3 | `[x]` |
+| T1.2 | Implement `LLMSpec` Pydantic model and normalization | Map OpenRouter fields; coerce missing pricing to `None`; validate context_length > 0 | P1 | 2 | `[x]` |
+| T1.3 | Implement in-memory TTL cache | Configurable TTL via env var; stale-read on refresh failure | P1 | 2 | `[x]` |
+| T1.4 | Unit tests for registry | Mock HTTP success, 429, 500, timeout, and malformed JSON; assert cache behavior | P1 | 3 | `[x]` |
 
 ---
 
@@ -107,7 +107,7 @@ Track delivery using the status column for every item.
 
 | ID | User Story | Priority | Points | Status |
 | --- | --- | --- | --- | --- |
-| US-2 | As a user, I want the best model selected by task complexity, context size, and budget priority so my request is handled optimally. | P1 | 8 | `[ ]` |
+| US-2 | As a user, I want the best model selected by task complexity, context size, and budget priority so my request is handled optimally. | P1 | 8 | `[x]` |
 
 **Acceptance Criteria**
 - Given a prompt with code blocks, when the router classifies intent, then `task_type` is `coding` and a coding-specialist model is ranked first.
@@ -117,10 +117,10 @@ Track delivery using the status column for every item.
 
 | Task ID | Task | Sub-tasks | Priority | Points | Status |
 | --- | --- | --- | --- | --- | --- |
-| T2.1 | Implement intent classifier | Rule-based: detect code blocks, length thresholds, keyword signals for planning/research | P1 | 3 | `[ ]` |
-| T2.2 | Implement suitability scoring function | Compute `S = Quality / (Cost * Latency)`; normalize inputs; apply budget weight multiplier | P1 | 3 | `[ ]` |
-| T2.3 | Implement candidate ranking and fallback chain | Rank all eligible models; build ordered fallback list; filter by context floor | P1 | 2 | `[ ]` |
-| T2.4 | Unit tests for every branch and tie-breaker | Empty model list, single model, all models fail eligibility, tie-breaking, each task type | P1 | 5 | `[ ]` |
+| T2.1 | Implement intent classifier | Rule-based: detect code blocks, length thresholds, keyword signals for planning/research | P1 | 3 | `[x]` |
+| T2.2 | Implement suitability scoring function | Compute `S = Quality / (Cost * Latency)`; normalize inputs; apply budget weight multiplier | P1 | 3 | `[x]` |
+| T2.3 | Implement candidate ranking and fallback chain | Rank all eligible models; build ordered fallback list; filter by context floor | P1 | 2 | `[x]` |
+| T2.4 | Unit tests for every branch and tie-breaker | Empty model list, single model, all models fail eligibility, tie-breaking, each task type | P1 | 5 | `[x]` |
 
 ---
 
@@ -161,7 +161,7 @@ Track delivery using the status column for every item.
 
 | ID | User Story | Priority | Points | Status |
 | --- | --- | --- | --- | --- |
-| US-5 | As a user, I want resilient execution when a provider fails so my request succeeds or I get a clear failure report. | P1 | 5 | `[ ]` |
+| US-5 | As a user, I want resilient execution when a provider fails so my request succeeds or I get a clear failure report. | P1 | 5 | `[x]` |
 
 **Acceptance Criteria**
 - Given a primary model returns 429, when the fallback pipeline runs, then the next ranked model is tried automatically.
@@ -170,9 +170,9 @@ Track delivery using the status column for every item.
 
 | Task ID | Task | Sub-tasks | Priority | Points | Status |
 | --- | --- | --- | --- | --- | --- |
-| T5.1 | Implement failure classifier | Classify 429, 5xx, timeout, and malformed response as transient or fatal | P1 | 2 | `[ ]` |
-| T5.2 | Implement fallback execution pipeline | Ordered iteration over fallback chain; per-model retry with back-off; aggregate error log | P1 | 3 | `[ ]` |
-| T5.3 | Tests for all failure scenarios | Mock 429, 500, timeout per model; assert correct model selected on each cascade step | P1 | 3 | `[ ]` |
+| T5.1 | Implement failure classifier | Classify 429, 5xx, timeout, and malformed response as transient or fatal | P1 | 2 | `[x]` |
+| T5.2 | Implement fallback execution pipeline | Ordered iteration over fallback chain; per-model retry with back-off; aggregate error log | P1 | 3 | `[x]` |
+| T5.3 | Tests for all failure scenarios | Mock 429, 500, timeout per model; assert correct model selected on each cascade step | P1 | 3 | `[x]` |
 
 ---
 
@@ -264,7 +264,7 @@ Track delivery using the status column for every item.
 
 | ID | User Story | Priority | Points | Status |
 | --- | --- | --- | --- | --- |
-| US-8 | As a maintainer, I want automated checks on every PR so regressions and vulnerabilities are caught before merge. | P2 | 3 | `[ ]` |
+| US-8 | As a maintainer, I want automated checks on every PR so regressions and vulnerabilities are caught before merge. | P2 | 3 | `[~]` |
 
 **Acceptance Criteria**
 - Given a PR is opened, when CI runs, then pytest must pass with 100% coverage or the build fails.
@@ -273,8 +273,8 @@ Track delivery using the status column for every item.
 
 | Task ID | Task | Sub-tasks | Priority | Points | Status |
 | --- | --- | --- | --- | --- | --- |
-| T8.1 | Add GitHub Actions workflow | Trigger on PR and push to main; run on ubuntu-latest with Python 3.12 | P2 | 2 | `[ ]` |
-| T8.2 | Configure test, coverage, and security steps | `pytest --cov=src/ear --cov-fail-under=100`; `bandit -r src/`; `pip-audit` | P2 | 1 | `[ ]` |
+| T8.1 | Add GitHub Actions workflow | Trigger on PR and push to main; run on ubuntu-latest with Python 3.12 | P2 | 2 | `[x]` |
+| T8.2 | Configure test, coverage, and security steps | `pytest --cov=src/ear --cov-fail-under=100`; `bandit -r src/`; `pip-audit` | P2 | 1 | `[~]` |
 | T8.3 | Validate workflow with forced failure | Temporarily drop coverage below threshold; confirm build breaks | P2 | 1 | `[ ]` |
 
 ---
