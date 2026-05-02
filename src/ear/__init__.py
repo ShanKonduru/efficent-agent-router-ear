@@ -1,3 +1,3 @@
 """Efficient Agent Router (EAR) — top-level package."""
 
-__version__ = "0.10.4"
+__version__ = "0.10.5"
