@@ -29,7 +29,7 @@ Track delivery using the status column for every item.
 | E7 | Observability and Cost/Latency Metrics | P2 | 5 | M3 | `[x]` |
 | E8 | MCP Server and Tool Exposure | P3 | 8 | M4 | `[x]` |
 | E9 | CI/CD and Security Automation | P2 | 4 | M4 | `[x]` |
-| E10 | Execution Plane and Adaptive Routing Intelligence | P1 | 13 | M5 | `[ ]` |
+| E10 | Execution Plane and Adaptive Routing Intelligence | P1 | 13 | M5 | `[x]` |
 | E11 | Leadership Demo Frontend and GTM Showcase | P2 | 8 | M6 | `[~]` |
 | | **Total** | | **89** | | |
 
@@ -43,7 +43,7 @@ Track delivery using the status column for every item.
 | M2 — Router Core and CLI | Week 2–3 | E3, E4, E5 | `ear route` command stable; fallback tested; routing at 100% coverage | `[x]` |
 | M3 — Guardrails and Observability | Week 4 | E6, E7 | Injection and PII policy enforced; metrics reporting available | `[x]` |
 | M4 — MCP and Automation | Week 5 | E8, E9 | MCP tool live; CI pipeline gates passing | `[x]` |
-| M5 — Execution and Intelligence | Week 6–7 | E10 | Real model execution active; semantic safety and adaptive intent routing validated | `[ ]` |
+| M5 — Execution and Intelligence | Week 6–7 | E10 | Real model execution active; semantic safety and adaptive intent routing validated | `[x]` |
 | M6 — Frontend and Leadership Demo | Week 8 | E11 | Web demo shows measurable business value and investor-ready narratives | `[~]` |
 
 ---
@@ -314,7 +314,7 @@ Track delivery using the status column for every item.
 
 | ID | User Story | Priority | Points | Status |
 | --- | --- | --- | --- | --- |
-| US-10 | As a security and platform owner, I want semantic intent/injection analysis so routing quality improves and policy evasion risk drops. | P1 | 5 | `[~]` |
+| US-10 | As a security and platform owner, I want semantic intent/injection analysis so routing quality improves and policy evasion risk drops. | P1 | 5 | `[x]` |
 
 **Acceptance Criteria**
 - Given ambiguous prompts, when intent classification runs, then embedding/flash-model classification outperforms keyword baseline on evaluation set.
@@ -326,7 +326,7 @@ Track delivery using the status column for every item.
 | T9.6 | Add advanced intent classifier | Integrate local embedding classifier or flash-model intent endpoint with deterministic fallback to heuristics | P1 | 2 | `[x]` |
 | T9.7 | Implement semantic prompt-injection detector | Add risk scoring pipeline and policy thresholds; return machine-readable reason codes | P1 | 3 | `[x]` |
 | T9.8 | Add mini-controller routing hints | Define strict JSON schema for controller output; validate and merge with deterministic scoring rules | P2 | 2 | `[x]` |
-| T9.9 | Build evaluation harness and benchmark suite | Compare precision/recall vs current heuristics for intent and injection detection | P2 | 3 | `[ ]` |
+| T9.9 | Build evaluation harness and benchmark suite | Compare precision/recall vs current heuristics for intent and injection detection | P2 | 3 | `[x]` |
 
 ---
 
@@ -373,8 +373,6 @@ Track delivery using the status column for every item.
 
 From the current project state, the remaining execution order is:
 
-1. E10 F9 — implement true route-and-execute runtime via LiteLLM with telemetry and fallback
-2. E10 F10 — add semantic intent/injection intelligence and mini-controller evaluation harness
-3. E11 F11 — deliver leadership/investor frontend demo with baseline-vs-EAR value comparison
-4. Keep branch synchronization policy (`master` and `main`) enforced for every release change
-5. Continue dependency and security posture monitoring in scheduled workflows
+1. E11 F11 — deliver leadership/investor frontend demo with baseline-vs-EAR value comparison
+2. Keep branch synchronization policy (`master` and `main`) enforced for every release change
+3. Continue dependency and security posture monitoring in scheduled workflows
