@@ -8,6 +8,9 @@ if errorlevel 1 (
   exit /b 1
 )
 
+echo [EAR Demo] Starting local demo API on http://127.0.0.1:8085 ...
+start "EAR Demo API" python -m ear.cli demo-server --host 127.0.0.1 --port 8085
+
 echo [EAR Demo] Opening leadership demo UI...
 start "" "docs\llm_explorer.html"
 

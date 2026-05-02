@@ -30,7 +30,7 @@ Track delivery using the status column for every item.
 | E8 | MCP Server and Tool Exposure | P3 | 8 | M4 | `[x]` |
 | E9 | CI/CD and Security Automation | P2 | 4 | M4 | `[x]` |
 | E10 | Execution Plane and Adaptive Routing Intelligence | P1 | 13 | M5 | `[x]` |
-| E11 | Leadership Demo Frontend and GTM Showcase | P2 | 8 | M6 | `[~]` |
+| E11 | Leadership Demo Frontend and GTM Showcase | P2 | 8 | M6 | `[x]` |
 | | **Total** | | **89** | | |
 
 ---
@@ -44,7 +44,7 @@ Track delivery using the status column for every item.
 | M3 — Guardrails and Observability | Week 4 | E6, E7 | Injection and PII policy enforced; metrics reporting available | `[x]` |
 | M4 — MCP and Automation | Week 5 | E8, E9 | MCP tool live; CI pipeline gates passing | `[x]` |
 | M5 — Execution and Intelligence | Week 6–7 | E10 | Real model execution active; semantic safety and adaptive intent routing validated | `[x]` |
-| M6 — Frontend and Leadership Demo | Week 8 | E11 | Web demo shows measurable business value and investor-ready narratives | `[~]` |
+| M6 — Frontend and Leadership Demo | Week 8 | E11 | Web demo shows measurable business value and investor-ready narratives | `[x]` |
 
 ---
 
@@ -340,7 +340,7 @@ Track delivery using the status column for every item.
 
 | ID | User Story | Priority | Points | Status |
 | --- | --- | --- | --- | --- |
-| US-11 | As a leadership stakeholder, I want a visual, interactive EAR demo so I can quickly understand cost, reliability, and safety benefits. | P2 | 5 | `[~]` |
+| US-11 | As a leadership stakeholder, I want a visual, interactive EAR demo so I can quickly understand cost, reliability, and safety benefits. | P2 | 5 | `[x]` |
 
 **Acceptance Criteria**
 - Given a demo scenario, when a prompt is executed, then UI shows selected model, answer, fallback timeline, and safety decisions.
@@ -350,7 +350,7 @@ Track delivery using the status column for every item.
 
 | Task ID | Task | Sub-tasks | Priority | Points | Status |
 | --- | --- | --- | --- | --- | --- |
-| T10.1 | Build frontend shell and design system | Implement responsive web app with scenario selector, run panel, metrics cards, and narrative timeline (current: `docs/llm_explorer.html` live comparison UI) | P2 | 3 | `[~]` |
+| T10.1 | Build frontend shell and design system | Implement responsive web app with scenario selector, run panel, metrics cards, and narrative timeline (current: `docs/llm_explorer.html` live comparison UI) | P2 | 3 | `[x]` |
 | T10.2 | Expose demo backend endpoints | Add API layer for route/execute, baseline compare mode, and replay datasets for deterministic demonstrations | P2 | 2 | `[x]` |
 | T10.3 | Implement value storytelling views | Add before/after comparison charts, safety incident feed, and executive summary mode | P2 | 2 | `[x]` |
 | T10.4 | Add demo readiness validation | Seed golden scenarios, add smoke tests, and create one-click script for leadership walkthrough | P2 | 1 | `[x]` |
@@ -373,6 +373,5 @@ Track delivery using the status column for every item.
 
 From the current project state, the remaining execution order is:
 
-1. E11 F11 — deliver leadership/investor frontend demo with baseline-vs-EAR value comparison
-2. Keep branch synchronization policy (`master` and `main`) enforced for every release change
-3. Continue dependency and security posture monitoring in scheduled workflows
+1. Keep branch synchronization policy (`master` and `main`) enforced for every release change
+2. Continue dependency and security posture monitoring in scheduled workflows

@@ -267,6 +267,26 @@ class TestCliModule:
         with pytest.raises(SystemExit):
             runpy.run_module("ear.cli", run_name="__main__")
 
+    def test_demo_server_command_invokes_server(
+        self, monkeypatch: pytest.MonkeyPatch, runner: CliRunner
+    ) -> None:
+        called: dict[str, object] = {}
+
+        def _fake_serve_demo_api(host: str, port: int) -> None:
+            called["host"] = host
+            called["port"] = port
+
+        monkeypatch.setattr(cli_module, "serve_demo_api", _fake_serve_demo_api)
+
+        result = runner.invoke(
+            cli_module.app,
+            ["demo-server", "--host", "127.0.0.1", "--port", "8085"],
+        )
+
+        assert result.exit_code == 0
+        assert called == {"host": "127.0.0.1", "port": 8085}
+        assert "Starting EAR demo API" in result.stdout
+
 
 class TestCliExecuteFlag:
     """Tests for the --execute flag on the route command."""

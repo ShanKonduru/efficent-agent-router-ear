@@ -10,6 +10,7 @@ from typing import Any
 import typer
 
 from ear.config import get_config
+from ear.demo_server import serve_demo_api
 from ear.fallback import AllCandidatesExhausted
 from ear.metrics import get_metrics_collector
 from ear.models import BudgetPriority, RouteMetric, RoutingRequest, TaskType
@@ -226,6 +227,16 @@ def stats(
         typer.echo("Calls by model :")
         for model_id, count in sorted(summary.calls_by_model.items()):
             typer.echo(f"  - {model_id}: {count}")
+
+
+@app.command(name="demo-server")
+def demo_server(
+    host: str = typer.Option("127.0.0.1", help="Host interface to bind the demo API server."),
+    port: int = typer.Option(8085, min=1, max=65535, help="TCP port for the demo API server."),
+) -> None:
+    """Start the local EAR demo backend API server."""
+    typer.echo(f"Starting EAR demo API on http://{host}:{port}")
+    serve_demo_api(host=host, port=port)
 
 
 def main() -> None:
