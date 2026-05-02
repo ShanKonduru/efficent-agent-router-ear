@@ -11,7 +11,7 @@ from __future__ import annotations
 import pytest
 
 from ear.intent import HeuristicIntentClassifier, IntentClassifier
-from ear.models import BudgetPriority, LLMPricing, LLMSpec, RoutingRequest, TaskType
+from ear.models import BudgetPriority, ControllerHint, LLMPricing, LLMSpec, RoutingRequest, TaskType
 from ear.router_engine import (
     MEGA_CONTEXT_THRESHOLD,
     RouterEngine,
@@ -253,3 +253,95 @@ class TestDecide:
         long_prompt = "x" * (MEGA_CONTEXT_THRESHOLD + 1)
         decision = self.engine.decide(RoutingRequest(prompt=long_prompt), model_catalog)
         assert decision.selected_model == "google/gemini-1.5-pro"
+
+    def test_controller_hint_task_type_used_when_high_confidence(
+        self, model_catalog: list[LLMSpec]
+    ) -> None:
+        class _NeverCallClassifier(IntentClassifier):
+            def classify(self, prompt: str) -> TaskType:
+                raise AssertionError("classifier should not run when confident hint exists")
+
+        engine = RouterEngine(classifier=_NeverCallClassifier())
+        request = RoutingRequest(
+            prompt="ambiguous text",
+            controller_hint=ControllerHint(task_type=TaskType.RESEARCH, confidence=0.9),
+        )
+        decision = engine.decide(request, model_catalog)
+        assert decision.task_type == TaskType.RESEARCH
+
+    def test_controller_hint_allowed_models_restricts_pool(
+        self, model_catalog: list[LLMSpec]
+    ) -> None:
+        request = RoutingRequest(
+            prompt="Hello world",
+            controller_hint=ControllerHint(
+                allowed_models=["openai/gpt-4o"],
+                confidence=0.8,
+            ),
+        )
+        decision = self.engine.decide(request, model_catalog)
+        assert decision.selected_model == "openai/gpt-4o"
+        assert decision.fallback_chain == []
+
+    def test_controller_hint_allowed_models_ignored_when_empty_intersection(
+        self, model_catalog: list[LLMSpec]
+    ) -> None:
+        request = RoutingRequest(
+            prompt="Hello world",
+            controller_hint=ControllerHint(
+                allowed_models=["nonexistent/model"],
+                confidence=0.9,
+            ),
+        )
+        decision = self.engine.decide(request, model_catalog)
+        assert decision.selected_model in {m.id for m in model_catalog}
+
+    def test_controller_hint_preferred_model_boost_applied(self) -> None:
+        class _FixedScorer(SuitabilityScorer):
+            def score(self, spec: LLMSpec, task_type: TaskType, budget_priority: BudgetPriority) -> float:
+                return 1.0
+
+        engine = RouterEngine(scorer=_FixedScorer())
+        model_a = LLMSpec(
+            id="openai/gpt-4o-mini",
+            context_length=16_000,
+            pricing=LLMPricing(prompt=0.0002, completion=0.0003),
+        )
+        model_b = LLMSpec(
+            id="anthropic/claude-3.5-sonnet",
+            context_length=16_000,
+            pricing=LLMPricing(prompt=0.0002, completion=0.0003),
+        )
+        request = RoutingRequest(
+            prompt="general task",
+            controller_hint=ControllerHint(preferred_model=model_b.id, confidence=0.9),
+        )
+
+        decision = engine.decide(request, [model_a, model_b])
+        assert decision.selected_model == model_b.id
+        assert "preferred_model_applied" in decision.reason
+
+    def test_controller_hint_preferred_model_ignored_when_low_confidence(self) -> None:
+        class _FixedScorer(SuitabilityScorer):
+            def score(self, spec: LLMSpec, task_type: TaskType, budget_priority: BudgetPriority) -> float:
+                return 1.0
+
+        engine = RouterEngine(scorer=_FixedScorer())
+        small = LLMSpec(
+            id="small/model",
+            context_length=4_000,
+            pricing=LLMPricing(prompt=0.001, completion=0.001),
+        )
+        large = LLMSpec(
+            id="large/model",
+            context_length=128_000,
+            pricing=LLMPricing(prompt=0.001, completion=0.001),
+        )
+        request = RoutingRequest(
+            prompt="task",
+            controller_hint=ControllerHint(preferred_model=large.id, confidence=0.5),
+        )
+
+        decision = engine.decide(request, [large, small])
+        # Tie score, so deterministic tie-breaker should keep smaller context first.
+        assert decision.selected_model == "small/model"

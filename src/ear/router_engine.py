@@ -7,6 +7,7 @@ import math
 from ear.intent import HeuristicIntentClassifier, IntentClassifier
 from ear.models import (
     BudgetPriority,
+    ControllerHint,
     LLMSpec,
     RoutingDecision,
     RoutingRequest,
@@ -49,6 +50,12 @@ _DEFAULT_COST_PER_TOKEN: float = 0.001
 _AFFINITY_BONUS: float = 0.3
 # Small constant preventing division-by-zero in the scoring formula.
 _EPSILON: float = 1e-9
+
+# Mini-controller merge policy (deterministic thresholds/weights).
+_HINT_TASK_TYPE_CONFIDENCE_THRESHOLD: float = 0.80
+_HINT_ALLOWED_MODELS_CONFIDENCE_THRESHOLD: float = 0.70
+_HINT_PREFERRED_MODEL_CONFIDENCE_THRESHOLD: float = 0.85
+_HINT_PREFERRED_MODEL_SCORE_BONUS: float = 0.20
 
 
 class SuitabilityScorer:
@@ -128,16 +135,22 @@ class RouterEngine:
         Raises:
             ValueError: If no eligible candidates exist after filtering.
         """
-        task_type = request.task_type or self._classifier.classify(request.prompt)
+        task_type = self._resolve_task_type(request)
 
         eligible = self._filter_eligible(request.prompt, available_models)
+        eligible = self._apply_allowed_model_hint(eligible, request.controller_hint)
         if not eligible:
             raise ValueError(
                 f"No eligible models for prompt of length {len(request.prompt)} chars. "
                 f"Available: {[m.id for m in available_models]}"
             )
 
-        ranked = self._rank_candidates(eligible, task_type, request.budget_priority)
+        ranked = self._rank_candidates(
+            eligible,
+            task_type,
+            request.budget_priority,
+            request.controller_hint,
+        )
         selected, score = ranked[0]
         fallback_chain = [m.id for m, _ in ranked[1:]]
 
@@ -145,6 +158,8 @@ class RouterEngine:
             f"Selected {selected.id!r} for {task_type.value} task "
             f"(score={score:.4f}, budget={request.budget_priority.value})"
         )
+        if self._is_preferred_model_hint_applied(selected.id, request.controller_hint):
+            reason += " [controller_hint:preferred_model_applied]"
         logger.info(
             "Routing decision: model=%s score=%.4f task=%s budget=%s fallback_count=%d",
             selected.id,
@@ -182,13 +197,64 @@ class RouterEngine:
         models: list[LLMSpec],
         task_type: TaskType,
         budget_priority: BudgetPriority,
+        controller_hint: ControllerHint | None = None,
     ) -> list[tuple[LLMSpec, float]]:
         """Return *(model, score)* pairs sorted by descending suitability score.
 
         Tie-breaking: when two models share the same score, the one with the
         smaller context length (proxy for lower latency) is ranked first.
         """
-        scored = [
-            (m, self._scorer.score(m, task_type, budget_priority)) for m in models
-        ]
+        scored: list[tuple[LLMSpec, float]] = []
+        for model in models:
+            score = self._scorer.score(model, task_type, budget_priority)
+            if self._is_preferred_model_hint_applied(model.id, controller_hint):
+                score += _HINT_PREFERRED_MODEL_SCORE_BONUS
+            scored.append((model, score))
+
         return sorted(scored, key=lambda x: (-x[1], x[0].context_length))
+
+    def _resolve_task_type(self, request: RoutingRequest) -> TaskType:
+        """Resolve task type from explicit request, hint, or classifier (in that order)."""
+        if request.task_type is not None:
+            return request.task_type
+
+        hint = request.controller_hint
+        if (
+            hint is not None
+            and hint.task_type is not None
+            and hint.confidence >= _HINT_TASK_TYPE_CONFIDENCE_THRESHOLD
+        ):
+            return hint.task_type
+
+        return self._classifier.classify(request.prompt)
+
+    def _apply_allowed_model_hint(
+        self,
+        models: list[LLMSpec],
+        controller_hint: ControllerHint | None,
+    ) -> list[LLMSpec]:
+        """Apply allow-list hint only when confidence is high and intersection is non-empty."""
+        if (
+            controller_hint is None
+            or not controller_hint.allowed_models
+            or controller_hint.confidence < _HINT_ALLOWED_MODELS_CONFIDENCE_THRESHOLD
+        ):
+            return models
+
+        allowed_ids = set(controller_hint.allowed_models)
+        restricted = [m for m in models if m.id in allowed_ids]
+
+        # Deterministic safety: ignore the hint if it eliminates all candidates.
+        return restricted if restricted else models
+
+    def _is_preferred_model_hint_applied(
+        self,
+        model_id: str,
+        controller_hint: ControllerHint | None,
+    ) -> bool:
+        """Return True when preferred-model hint should influence ranking."""
+        return (
+            controller_hint is not None
+            and controller_hint.preferred_model == model_id
+            and controller_hint.confidence >= _HINT_PREFERRED_MODEL_CONFIDENCE_THRESHOLD
+        )

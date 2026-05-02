@@ -6,6 +6,7 @@ from pydantic import ValidationError
 
 from ear.models import (
     BudgetPriority,
+    ControllerHint,
     GuardrailResult,
     LLMPricing,
     LLMSpec,
@@ -60,6 +61,14 @@ class TestRoutingRequest:
         assert req.task_type == TaskType.CODING
         assert req.budget_priority == BudgetPriority.LOW
 
+    def test_request_accepts_controller_hint(self) -> None:
+        req = RoutingRequest(
+            prompt="Plan this migration.",
+            controller_hint=ControllerHint(task_type=TaskType.PLANNING, confidence=0.9),
+        )
+        assert req.controller_hint is not None
+        assert req.controller_hint.task_type == TaskType.PLANNING
+
 
 class TestRoutingDecision:
     def test_valid_decision(self) -> None:
@@ -91,6 +100,35 @@ class TestGuardrailResult:
     def test_failing_result(self) -> None:
         result = GuardrailResult(passed=False, injection_detected=True, reason="Jailbreak pattern detected.")
         assert result.reason is not None
+
+
+class TestControllerHint:
+    def test_valid_hint(self) -> None:
+        hint = ControllerHint(
+            task_type=TaskType.CODING,
+            preferred_model="openai/gpt-4o-mini",
+            allowed_models=["openai/gpt-4o-mini", "anthropic/claude-3.5-sonnet"],
+            confidence=0.92,
+        )
+        assert hint.confidence == 0.92
+
+    def test_extra_fields_forbidden(self) -> None:
+        with pytest.raises(ValidationError):
+            ControllerHint.model_validate(
+                {
+                    "task_type": "coding",
+                    "confidence": 0.9,
+                    "unexpected": "not-allowed",
+                }
+            )
+
+    def test_blank_preferred_model_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            ControllerHint(preferred_model="  ", confidence=0.8)
+
+    def test_blank_allowed_model_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            ControllerHint(allowed_models=["openai/gpt-4o", " "], confidence=0.8)
 
 
 class TestSessionSummary:

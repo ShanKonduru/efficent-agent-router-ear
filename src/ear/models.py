@@ -4,7 +4,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class TaskType(str, Enum):
@@ -22,6 +22,45 @@ class BudgetPriority(str, Enum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
+
+
+class ControllerHint(BaseModel):
+    """Strict mini-controller hint payload used to guide deterministic routing."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    task_type: Optional[TaskType] = Field(
+        default=None,
+        description="Optional task-type hint from mini-controller.",
+    )
+    preferred_model: Optional[str] = Field(
+        default=None,
+        description="Optional preferred model ID hint.",
+    )
+    allowed_models: list[str] = Field(
+        default_factory=list,
+        description="Optional allow-list for candidate models.",
+    )
+    confidence: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="Confidence score for the hint payload.",
+    )
+
+    @field_validator("preferred_model")
+    @classmethod
+    def preferred_model_must_not_be_blank(cls, value: Optional[str]) -> Optional[str]:
+        if value is not None and not value.strip():
+            raise ValueError("ControllerHint.preferred_model must not be blank.")
+        return value
+
+    @field_validator("allowed_models")
+    @classmethod
+    def allowed_models_must_not_contain_blanks(cls, value: list[str]) -> list[str]:
+        if any(not model_id.strip() for model_id in value):
+            raise ValueError("ControllerHint.allowed_models must not contain blank model IDs.")
+        return value
 
 
 class LLMPricing(BaseModel):
@@ -58,6 +97,10 @@ class RoutingRequest(BaseModel):
     budget_priority: BudgetPriority = Field(
         default=BudgetPriority.MEDIUM,
         description="Desired cost vs quality tradeoff.",
+    )
+    controller_hint: Optional[ControllerHint] = Field(
+        default=None,
+        description="Optional mini-controller hint payload.",
     )
 
     @field_validator("prompt")
