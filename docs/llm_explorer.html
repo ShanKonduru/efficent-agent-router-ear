@@ -302,6 +302,99 @@
       margin-left: 4px;
     }
 
+    .story {
+      margin-top: 12px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      box-shadow: var(--shadow);
+      padding: 12px 14px;
+    }
+
+    .story h3 { margin: 2px 0 8px; }
+
+    .story-controls {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 10px;
+      align-items: end;
+    }
+
+    .story-grid {
+      margin-top: 10px;
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(4, minmax(150px, 1fr));
+    }
+
+    .story-card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      background: #fcfeff;
+    }
+
+    .story-card .label { color: var(--muted); font-size: 0.78rem; }
+    .story-card .value { font-size: 1.15rem; font-weight: 700; margin-top: 3px; }
+
+    .bars {
+      margin-top: 10px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 120px 1fr 90px;
+      gap: 8px;
+      align-items: center;
+      font-size: 0.84rem;
+    }
+
+    .bar-track {
+      height: 11px;
+      background: #eaf1f9;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, #1d9f8a, #2e6f96);
+      transition: width 280ms ease;
+    }
+
+    .safety-feed {
+      margin-top: 10px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #f8fbfd;
+      padding: 10px;
+      min-height: 72px;
+    }
+
+    .safety-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px dashed #d6e5f2;
+      font-size: 0.84rem;
+    }
+
+    .safety-item:last-child { border-bottom: none; }
+
+    .exec-note {
+      margin-top: 10px;
+      border: 1px solid #c5ddf6;
+      border-radius: 10px;
+      background: #edf5ff;
+      padding: 9px 10px;
+      font-size: 0.84rem;
+      color: #24496d;
+    }
+
     .loading {
       padding: 20px;
       font-weight: 700;
@@ -313,12 +406,16 @@
       .filters { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
       .kpis { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
       .compare-grid { grid-template-columns: repeat(2, minmax(180px, 1fr)); }
+      .story-controls { grid-template-columns: 1fr; }
+      .story-grid { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
     }
 
     @media (max-width: 650px) {
       .filters { grid-template-columns: 1fr; }
       .kpis { grid-template-columns: 1fr; }
       .compare-grid { grid-template-columns: 1fr; }
+      .story-grid { grid-template-columns: 1fr; }
+      .bar-row { grid-template-columns: 1fr; }
       .hero p { font-size: 0.92rem; }
     }
 
@@ -406,10 +503,100 @@
       <h3>Selected Model Comparison (up to 4)</h3>
       <div id="compareGrid" class="compare-grid"></div>
     </section>
+
+    <section class="story">
+      <h3>Value Storytelling: Baseline vs EAR</h3>
+      <div class="story-controls">
+        <div>
+          <label for="scenarioSelect">Replay scenario</label>
+          <select id="scenarioSelect"></select>
+        </div>
+        <div>
+          <label for="storyMode">View mode</label>
+          <select id="storyMode">
+            <option value="delta" selected>Delta Focus</option>
+            <option value="baseline">Baseline</option>
+            <option value="ear">EAR</option>
+          </select>
+        </div>
+        <div class="btn-row">
+          <button id="runStoryBtn" type="button">Run Scenario</button>
+          <button id="execSummaryBtn" class="secondary" type="button">Executive Summary</button>
+        </div>
+      </div>
+
+      <div class="story-grid">
+        <div class="story-card"><div class="label">Cost Delta</div><div id="storyCost" class="value">-</div></div>
+        <div class="story-card"><div class="label">Latency Delta</div><div id="storyLatency" class="value">-</div></div>
+        <div class="story-card"><div class="label">Reliability Gain</div><div id="storyReliability" class="value">-</div></div>
+        <div class="story-card"><div class="label">Safety Incidents Blocked</div><div id="storySafety" class="value">-</div></div>
+      </div>
+
+      <div class="bars">
+        <div class="bar-row">
+          <div>Cost Savings</div>
+          <div class="bar-track"><div id="barCost" class="bar-fill"></div></div>
+          <div id="barCostLabel" class="mono">0%</div>
+        </div>
+        <div class="bar-row">
+          <div>Latency Savings</div>
+          <div class="bar-track"><div id="barLatency" class="bar-fill"></div></div>
+          <div id="barLatencyLabel" class="mono">0%</div>
+        </div>
+        <div class="bar-row">
+          <div>Reliability Lift</div>
+          <div class="bar-track"><div id="barReliability" class="bar-fill"></div></div>
+          <div id="barReliabilityLabel" class="mono">0%</div>
+        </div>
+      </div>
+
+      <div class="safety-feed" id="safetyFeed"></div>
+      <div class="exec-note" id="execNote">Executive summary not loaded yet.</div>
+    </section>
   </div>
 
   <script>
     const SOURCE_URL = "https://openrouter.ai/api/v1/models";
+    const DEMO_API_BASE = "http://localhost:8085/demo";
+
+    const FALLBACK_SCENARIOS = [
+      {
+        id: "incident-response",
+        title: "Incident Response Triage",
+        baseline_model: "openai/gpt-4o",
+        ear_model: "openai/gpt-4o-mini",
+        baseline_cost_usd: 0.024,
+        ear_cost_usd: 0.009,
+        baseline_latency_ms: 1580,
+        ear_latency_ms: 740,
+        reliability_gain_pct: 21,
+        safety_incidents_blocked: 0
+      },
+      {
+        id: "security-jailbreak",
+        title: "Security Prompt Injection Attempt",
+        baseline_model: "openai/gpt-4o",
+        ear_model: "blocked-by-guardrails",
+        baseline_cost_usd: 0.014,
+        ear_cost_usd: 0,
+        baseline_latency_ms: 1210,
+        ear_latency_ms: 45,
+        reliability_gain_pct: 38,
+        safety_incidents_blocked: 1
+      },
+      {
+        id: "architecture-review",
+        title: "Architecture Review and Trade-offs",
+        baseline_model: "anthropic/claude-3.5-sonnet",
+        ear_model: "openai/gpt-4o-mini",
+        baseline_cost_usd: 0.028,
+        ear_cost_usd: 0.011,
+        baseline_latency_ms: 1910,
+        ear_latency_ms: 910,
+        reliability_gain_pct: 17,
+        safety_incidents_blocked: 0
+      }
+    ];
 
     let allRows = [];
     let visibleRows = [];
@@ -428,6 +615,10 @@
       modality: "all"
     };
     let refreshTimer = null;
+    let storyScenarios = [];
+    let storyCompare = null;
+    let storySummary = null;
+    let storyFeed = [];
 
     const el = {
       search: document.getElementById("search"),
@@ -446,8 +637,188 @@
       kpiMedianContext: document.getElementById("kpiMedianContext"),
       kpiAvgCost: document.getElementById("kpiAvgCost"),
       kpiCheapest: document.getElementById("kpiCheapest"),
-      kpiMaxContext: document.getElementById("kpiMaxContext")
+      kpiMaxContext: document.getElementById("kpiMaxContext"),
+      scenarioSelect: document.getElementById("scenarioSelect"),
+      storyMode: document.getElementById("storyMode"),
+      runStoryBtn: document.getElementById("runStoryBtn"),
+      execSummaryBtn: document.getElementById("execSummaryBtn"),
+      storyCost: document.getElementById("storyCost"),
+      storyLatency: document.getElementById("storyLatency"),
+      storyReliability: document.getElementById("storyReliability"),
+      storySafety: document.getElementById("storySafety"),
+      barCost: document.getElementById("barCost"),
+      barLatency: document.getElementById("barLatency"),
+      barReliability: document.getElementById("barReliability"),
+      barCostLabel: document.getElementById("barCostLabel"),
+      barLatencyLabel: document.getElementById("barLatencyLabel"),
+      barReliabilityLabel: document.getElementById("barReliabilityLabel"),
+      safetyFeed: document.getElementById("safetyFeed"),
+      execNote: document.getElementById("execNote")
     };
+
+    function clampPercent(v) {
+      if (!Number.isFinite(v)) return 0;
+      return Math.max(0, Math.min(100, v));
+    }
+
+    function deltaPercent(baseline, current) {
+      if (!Number.isFinite(baseline) || baseline <= 0) return 0;
+      return ((baseline - current) / baseline) * 100;
+    }
+
+    function fallbackSummary(scenarios) {
+      if (!scenarios.length) {
+        return {
+          scenarios_count: 0,
+          avg_cost_delta_pct: 0,
+          avg_latency_delta_pct: 0,
+          total_safety_incidents_blocked: 0,
+          average_reliability_gain_pct: 0
+        };
+      }
+      const cost = scenarios.map(s => deltaPercent(s.baseline_cost_usd, s.ear_cost_usd));
+      const latency = scenarios.map(s => deltaPercent(s.baseline_latency_ms, s.ear_latency_ms));
+      const reliability = scenarios.map(s => s.reliability_gain_pct || 0);
+      return {
+        scenarios_count: scenarios.length,
+        avg_cost_delta_pct: cost.reduce((a, b) => a + b, 0) / cost.length,
+        avg_latency_delta_pct: latency.reduce((a, b) => a + b, 0) / latency.length,
+        total_safety_incidents_blocked: scenarios.reduce((a, s) => a + (s.safety_incidents_blocked || 0), 0),
+        average_reliability_gain_pct: reliability.reduce((a, b) => a + b, 0) / reliability.length
+      };
+    }
+
+    async function loadStorytellingData() {
+      try {
+        const [scenariosRes, summaryRes, feedRes] = await Promise.all([
+          fetch(`${DEMO_API_BASE}/scenarios`, { cache: "no-store" }),
+          fetch(`${DEMO_API_BASE}/summary`, { cache: "no-store" }),
+          fetch(`${DEMO_API_BASE}/safety-feed`, { cache: "no-store" })
+        ]);
+
+        if (!scenariosRes.ok || !summaryRes.ok || !feedRes.ok) {
+          throw new Error("demo backend endpoint unavailable");
+        }
+
+        const scenariosPayload = await scenariosRes.json();
+        const summaryPayload = await summaryRes.json();
+        const feedPayload = await feedRes.json();
+
+        storyScenarios = Array.isArray(scenariosPayload.scenarios) ? scenariosPayload.scenarios : [];
+        storySummary = summaryPayload;
+        storyFeed = Array.isArray(feedPayload.incidents) ? feedPayload.incidents : [];
+      } catch (_err) {
+        storyScenarios = FALLBACK_SCENARIOS;
+        storySummary = fallbackSummary(storyScenarios);
+        storyFeed = storyScenarios
+          .filter((s) => (s.safety_incidents_blocked || 0) > 0)
+          .map((s) => ({
+            scenario_id: s.id,
+            title: s.title,
+            blocked: true,
+            blocked_count: s.safety_incidents_blocked
+          }));
+      }
+
+      renderScenarioOptions();
+      renderSafetyFeed();
+      renderExecutiveNote();
+      await runStoryScenario();
+    }
+
+    function renderScenarioOptions() {
+      const options = storyScenarios.map((s) =>
+        `<option value="${s.id}">${s.title}</option>`
+      );
+      el.scenarioSelect.innerHTML = options.join("");
+    }
+
+    function renderSafetyFeed() {
+      if (!storyFeed.length) {
+        el.safetyFeed.innerHTML = "<div class='muted'>No safety incidents in the current replay set.</div>";
+        return;
+      }
+      el.safetyFeed.innerHTML = storyFeed.map((item) => `
+        <div class="safety-item">
+          <span>${item.title}</span>
+          <span class="chip">blocked: ${item.blocked_count}</span>
+        </div>
+      `).join("");
+    }
+
+    function renderExecutiveNote() {
+      if (!storySummary) {
+        el.execNote.textContent = "Executive summary unavailable.";
+        return;
+      }
+      el.execNote.textContent = `Across ${storySummary.scenarios_count} demo scenarios, EAR improves cost by ${storySummary.avg_cost_delta_pct.toFixed(1)}%, latency by ${storySummary.avg_latency_delta_pct.toFixed(1)}%, and blocks ${storySummary.total_safety_incidents_blocked} safety incidents.`;
+    }
+
+    function renderStoryCards() {
+      if (!storyCompare) return;
+      const mode = el.storyMode.value;
+
+      if (mode === "baseline") {
+        el.storyCost.textContent = `$${storyCompare.baseline_cost_usd.toFixed(4)}`;
+        el.storyLatency.textContent = `${storyCompare.baseline_latency_ms.toFixed(0)} ms`;
+        el.storyReliability.textContent = "baseline";
+      } else if (mode === "ear") {
+        el.storyCost.textContent = `$${storyCompare.ear_cost_usd.toFixed(4)}`;
+        el.storyLatency.textContent = `${storyCompare.ear_latency_ms.toFixed(0)} ms`;
+        el.storyReliability.textContent = `+${storyCompare.reliability_gain_pct.toFixed(1)}%`;
+      } else {
+        el.storyCost.textContent = `+${storyCompare.cost_delta_pct.toFixed(1)}%`;
+        el.storyLatency.textContent = `+${storyCompare.latency_delta_pct.toFixed(1)}%`;
+        el.storyReliability.textContent = `+${storyCompare.reliability_gain_pct.toFixed(1)}%`;
+      }
+
+      el.storySafety.textContent = String(storyCompare.safety_incidents_blocked);
+
+      const costPct = clampPercent(storyCompare.cost_delta_pct);
+      const latencyPct = clampPercent(storyCompare.latency_delta_pct);
+      const relPct = clampPercent(storyCompare.reliability_gain_pct);
+
+      el.barCost.style.width = `${costPct}%`;
+      el.barLatency.style.width = `${latencyPct}%`;
+      el.barReliability.style.width = `${relPct}%`;
+
+      el.barCostLabel.textContent = `${costPct.toFixed(1)}%`;
+      el.barLatencyLabel.textContent = `${latencyPct.toFixed(1)}%`;
+      el.barReliabilityLabel.textContent = `${relPct.toFixed(1)}%`;
+    }
+
+    async function runStoryScenario() {
+      const scenarioId = el.scenarioSelect.value || (storyScenarios[0] && storyScenarios[0].id);
+      if (!scenarioId) return;
+
+      try {
+        const res = await fetch(`${DEMO_API_BASE}/compare?scenario_id=${encodeURIComponent(scenarioId)}`, {
+          cache: "no-store"
+        });
+        if (!res.ok) {
+          throw new Error("compare endpoint unavailable");
+        }
+        storyCompare = await res.json();
+      } catch (_err) {
+        const scenario = storyScenarios.find((s) => s.id === scenarioId);
+        if (!scenario) return;
+        storyCompare = {
+          scenario_id: scenario.id,
+          baseline_model: scenario.baseline_model,
+          ear_model: scenario.ear_model,
+          baseline_cost_usd: scenario.baseline_cost_usd,
+          ear_cost_usd: scenario.ear_cost_usd,
+          baseline_latency_ms: scenario.baseline_latency_ms,
+          ear_latency_ms: scenario.ear_latency_ms,
+          cost_delta_pct: deltaPercent(scenario.baseline_cost_usd, scenario.ear_cost_usd),
+          latency_delta_pct: deltaPercent(scenario.baseline_latency_ms, scenario.ear_latency_ms),
+          reliability_gain_pct: scenario.reliability_gain_pct,
+          safety_incidents_blocked: scenario.safety_incidents_blocked
+        };
+      }
+
+      renderStoryCards();
+    }
 
     function providerFromId(modelId) {
       const idx = modelId.indexOf("/");
@@ -844,9 +1215,14 @@
     el.refreshBtn.addEventListener("click", loadData);
     el.resetBtn.addEventListener("click", resetFilters);
     el.refreshSeconds.addEventListener("change", configureAutoRefresh);
+    el.runStoryBtn.addEventListener("click", runStoryScenario);
+    el.execSummaryBtn.addEventListener("click", renderExecutiveNote);
+    el.scenarioSelect.addEventListener("change", runStoryScenario);
+    el.storyMode.addEventListener("change", renderStoryCards);
 
     configureAutoRefresh();
     loadData();
+    loadStorytellingData();
   </script>
 </body>
 </html>

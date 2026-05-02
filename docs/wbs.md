@@ -351,9 +351,9 @@ Track delivery using the status column for every item.
 | Task ID | Task | Sub-tasks | Priority | Points | Status |
 | --- | --- | --- | --- | --- | --- |
 | T10.1 | Build frontend shell and design system | Implement responsive web app with scenario selector, run panel, metrics cards, and narrative timeline (current: `docs/llm_explorer.html` live comparison UI) | P2 | 3 | `[~]` |
-| T10.2 | Expose demo backend endpoints | Add API layer for route/execute, baseline compare mode, and replay datasets for deterministic demonstrations | P2 | 2 | `[ ]` |
-| T10.3 | Implement value storytelling views | Add before/after comparison charts, safety incident feed, and executive summary mode | P2 | 2 | `[ ]` |
-| T10.4 | Add demo readiness validation | Seed golden scenarios, add smoke tests, and create one-click script for leadership walkthrough | P2 | 1 | `[ ]` |
+| T10.2 | Expose demo backend endpoints | Add API layer for route/execute, baseline compare mode, and replay datasets for deterministic demonstrations | P2 | 2 | `[x]` |
+| T10.3 | Implement value storytelling views | Add before/after comparison charts, safety incident feed, and executive summary mode | P2 | 2 | `[x]` |
+| T10.4 | Add demo readiness validation | Seed golden scenarios, add smoke tests, and create one-click script for leadership walkthrough | P2 | 1 | `[x]` |
 
 ---
 
