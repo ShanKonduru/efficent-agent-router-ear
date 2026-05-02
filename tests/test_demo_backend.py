@@ -100,9 +100,12 @@ class TestDemoBackendService:
         service = DemoBackendService()
         payload = await service.safety_feed_endpoint(limit=5)
 
+        expected_blocked = [
+            s for s in DEFAULT_REPLAY_SCENARIOS if s.safety_incidents_blocked > 0
+        ]
         assert "incidents" in payload
-        assert len(payload["incidents"]) == 1
-        assert payload["incidents"][0]["blocked"] is True
+        assert len(payload["incidents"]) == min(5, len(expected_blocked))
+        assert all(item["blocked"] is True for item in payload["incidents"])
 
     async def test_safety_feed_limit_clamped(self) -> None:
         service = DemoBackendService()
@@ -116,7 +119,9 @@ class TestDemoBackendService:
         assert payload["scenarios_count"] == len(DEFAULT_REPLAY_SCENARIOS)
         assert payload["avg_cost_delta_pct"] > 0
         assert payload["avg_latency_delta_pct"] > 0
-        assert payload["total_safety_incidents_blocked"] == 1
+        assert payload["total_safety_incidents_blocked"] == sum(
+            s.safety_incidents_blocked for s in DEFAULT_REPLAY_SCENARIOS
+        )
 
     async def test_executive_summary_empty(self) -> None:
         service = DemoBackendService(scenarios=())

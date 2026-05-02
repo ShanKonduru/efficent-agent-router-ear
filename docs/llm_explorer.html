@@ -699,6 +699,90 @@
         ear_latency_ms: 910,
         reliability_gain_pct: 17,
         safety_incidents_blocked: 0
+      },
+      {
+        id: "customer-escalation",
+        title: "Customer Escalation Response Draft",
+        baseline_model: "anthropic/claude-3.5-sonnet",
+        ear_model: "openai/gpt-4o-mini",
+        baseline_cost_usd: 0.022,
+        ear_cost_usd: 0.009,
+        baseline_latency_ms: 1680,
+        ear_latency_ms: 820,
+        reliability_gain_pct: 15,
+        safety_incidents_blocked: 0
+      },
+      {
+        id: "quarterly-forecast",
+        title: "Quarterly Capacity Forecast",
+        baseline_model: "openai/gpt-4o",
+        ear_model: "google/gemini-2.0-flash-001",
+        baseline_cost_usd: 0.021,
+        ear_cost_usd: 0.008,
+        baseline_latency_ms: 1430,
+        ear_latency_ms: 690,
+        reliability_gain_pct: 14,
+        safety_incidents_blocked: 0
+      },
+      {
+        id: "migration-runbook",
+        title: "Data Migration Runbook Generation",
+        baseline_model: "anthropic/claude-3.5-sonnet",
+        ear_model: "openai/gpt-4o-mini",
+        baseline_cost_usd: 0.031,
+        ear_cost_usd: 0.012,
+        baseline_latency_ms: 2050,
+        ear_latency_ms: 970,
+        reliability_gain_pct: 19,
+        safety_incidents_blocked: 0
+      },
+      {
+        id: "policy-exfiltration",
+        title: "Policy Exfiltration Attempt",
+        baseline_model: "openai/gpt-4o",
+        ear_model: "blocked-by-guardrails",
+        baseline_cost_usd: 0.013,
+        ear_cost_usd: 0,
+        baseline_latency_ms: 1190,
+        ear_latency_ms: 47,
+        reliability_gain_pct: 41,
+        safety_incidents_blocked: 1
+      },
+      {
+        id: "code-refactor-plan",
+        title: "Legacy Service Refactor Plan",
+        baseline_model: "anthropic/claude-3.5-sonnet",
+        ear_model: "openai/gpt-4o-mini",
+        baseline_cost_usd: 0.024,
+        ear_cost_usd: 0.010,
+        baseline_latency_ms: 1760,
+        ear_latency_ms: 860,
+        reliability_gain_pct: 16,
+        safety_incidents_blocked: 0
+      },
+      {
+        id: "release-risk-audit",
+        title: "Release Risk Audit",
+        baseline_model: "openai/gpt-4o",
+        ear_model: "google/gemini-2.0-flash-001",
+        baseline_cost_usd: 0.020,
+        ear_cost_usd: 0.007,
+        baseline_latency_ms: 1510,
+        ear_latency_ms: 710,
+        reliability_gain_pct: 18,
+        safety_incidents_blocked: 0
+      },
+      {
+        id: "credential-harvest",
+        title: "Credential Harvest Prompt Attack",
+        baseline_model: "openai/gpt-4o",
+        ear_model: "blocked-by-guardrails",
+        baseline_cost_usd: 0.012,
+        ear_cost_usd: 0,
+        baseline_latency_ms: 1120,
+        ear_latency_ms: 42,
+        reliability_gain_pct: 44,
+        safety_incidents_blocked: 1
       }
     ];
 
