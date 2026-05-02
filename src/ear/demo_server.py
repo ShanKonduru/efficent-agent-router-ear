@@ -4,10 +4,14 @@ from __future__ import annotations
 import asyncio
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import parse_qs, urlparse
 
 from ear.demo_backend import DemoBackendService, DemoRouteRequest
+
+
+_DEMO_HTML_PATH = Path(__file__).resolve().parents[2] / "docs" / "llm_explorer.html"
 
 
 class DemoRequestRouter:
@@ -67,6 +71,12 @@ def create_handler(router: DemoRequestRouter) -> type[BaseHTTPRequestHandler]:
 
     class DemoHTTPRequestHandler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:  # noqa: N802
+            parsed = urlparse(self.path)
+            route = parsed.path.rstrip("/") or "/"
+            if route in {"/", "/index.html"}:
+                self._send_html(200, _load_demo_ui_html())
+                return
+
             status, payload = router.handle_request("GET", self.path)
             self._send_json(status, payload)
 
@@ -88,6 +98,15 @@ def create_handler(router: DemoRequestRouter) -> type[BaseHTTPRequestHandler]:
             self.end_headers()
             self.wfile.write(response)
 
+        def _send_html(self, status: int, payload: str) -> None:
+            response = payload.encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(response)))
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(response)
+
     return DemoHTTPRequestHandler
 
 
@@ -104,3 +123,8 @@ def _parse_int(value: str, default: int) -> int:
         return int(value)
     except (TypeError, ValueError):
         return default
+
+
+def _load_demo_ui_html() -> str:
+    """Return the demo UI HTML served at the root path."""
+    return _DEMO_HTML_PATH.read_text(encoding="utf-8")

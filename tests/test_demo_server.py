@@ -114,6 +114,12 @@ class TestDemoHttpHandler:
         try:
             base_url = f"http://127.0.0.1:{server.server_port}"
 
+            with urlopen(f"{base_url}/") as response:
+                html = response.read().decode("utf-8")
+                assert "<!doctype html>" in html.lower()
+                assert "EAR LLM Explorer" in html
+                assert response.headers["Content-Type"].startswith("text/html")
+
             with urlopen(f"{base_url}/demo/scenarios") as response:
                 payload = json.loads(response.read().decode("utf-8"))
                 assert "scenarios" in payload

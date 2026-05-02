@@ -277,7 +277,30 @@
       padding: 12px 14px;
     }
 
+    .compare-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
     .compare h3 { margin: 2px 0 8px; }
+
+    .compare-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .compare-count {
+      color: var(--muted);
+      font-size: 0.82rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 2px 8px;
+      background: #f8fbfd;
+    }
 
     .compare-grid {
       display: grid;
@@ -313,12 +336,59 @@
 
     .story h3 { margin: 2px 0 8px; }
 
+    .story-caption {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 0.92rem;
+      max-width: 980px;
+    }
+
+    .story-intro {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(160px, 1fr));
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .story-step {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      background: #f8fbfd;
+      font-size: 0.84rem;
+    }
+
+    .story-step strong {
+      display: block;
+      font-size: 0.78rem;
+      color: #173654;
+      margin-bottom: 4px;
+    }
+
     .story-controls {
       display: grid;
       grid-template-columns: 2fr 1fr 1fr;
       gap: 10px;
       align-items: end;
     }
+
+    .story-snapshot {
+      margin-top: 10px;
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(3, minmax(180px, 1fr));
+    }
+
+    .snapshot-card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      background: #fcfeff;
+    }
+
+    .snapshot-card .label { color: var(--muted); font-size: 0.78rem; }
+    .snapshot-card .value { font-size: 1rem; font-weight: 700; margin-top: 3px; word-break: break-word; }
+    .snapshot-card .detail { color: var(--muted); font-size: 0.82rem; margin-top: 5px; }
 
     .story-grid {
       margin-top: 10px;
@@ -406,7 +476,9 @@
       .filters { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
       .kpis { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
       .compare-grid { grid-template-columns: repeat(2, minmax(180px, 1fr)); }
+      .story-intro { grid-template-columns: 1fr; }
       .story-controls { grid-template-columns: 1fr; }
+      .story-snapshot { grid-template-columns: 1fr; }
       .story-grid { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
     }
 
@@ -500,36 +572,68 @@
     </section>
 
     <section class="compare">
-      <h3>Selected Model Comparison (up to 4)</h3>
+      <div class="compare-head">
+        <h3>Selected Model Comparison (up to 4)</h3>
+        <div class="compare-actions">
+          <span id="compareCount" class="compare-count">Selected: 0/4</span>
+          <button id="clearCompareBtn" class="secondary" type="button">Clear Selection</button>
+        </div>
+      </div>
       <div id="compareGrid" class="compare-grid"></div>
     </section>
 
     <section class="story">
-      <h3>Value Storytelling: Baseline vs EAR</h3>
+      <h3>Value Story: Baseline vs EAR</h3>
+      <p class="story-caption">
+        Pick a demo scenario to compare a single-model baseline against EAR's routed outcome. In improvement view, positive percentages mean EAR is better than the baseline on that metric.
+      </p>
+      <div class="story-intro">
+        <div class="story-step"><strong>Step 1</strong>Choose a scenario that matches the business situation you want to explain.</div>
+        <div class="story-step"><strong>Step 2</strong>Read the baseline path and EAR path cards to see what is being compared.</div>
+        <div class="story-step"><strong>Step 3</strong>Use the summary button when you want the rolled-up message across all demo scenarios.</div>
+      </div>
       <div class="story-controls">
         <div>
-          <label for="scenarioSelect">Replay scenario</label>
+          <label for="scenarioSelect">Demo scenario</label>
           <select id="scenarioSelect"></select>
         </div>
         <div>
-          <label for="storyMode">View mode</label>
+          <label for="storyMode">What to show</label>
           <select id="storyMode">
-            <option value="delta" selected>Delta Focus</option>
-            <option value="baseline">Baseline</option>
-            <option value="ear">EAR</option>
+            <option value="delta" selected>EAR improvements vs baseline</option>
+            <option value="baseline">Baseline numbers only</option>
+            <option value="ear">EAR numbers only</option>
           </select>
         </div>
         <div class="btn-row">
-          <button id="runStoryBtn" type="button">Run Scenario</button>
-          <button id="execSummaryBtn" class="secondary" type="button">Executive Summary</button>
+          <button id="runStoryBtn" type="button">Refresh Comparison</button>
+          <button id="execSummaryBtn" class="secondary" type="button">Show Portfolio Summary</button>
+        </div>
+      </div>
+
+      <div class="story-snapshot">
+        <div class="snapshot-card">
+          <div class="label">Selected Scenario</div>
+          <div id="storyScenarioTitle" class="value">-</div>
+          <div id="storyScenarioDetail" class="detail">-</div>
+        </div>
+        <div class="snapshot-card">
+          <div class="label">Baseline Path</div>
+          <div id="storyBaselineModel" class="value">-</div>
+          <div class="detail">Single-model fallback or status-quo execution path.</div>
+        </div>
+        <div class="snapshot-card">
+          <div class="label">EAR Path</div>
+          <div id="storyEarModel" class="value">-</div>
+          <div class="detail">EAR-selected model or guardrail outcome for this scenario.</div>
         </div>
       </div>
 
       <div class="story-grid">
-        <div class="story-card"><div class="label">Cost Delta</div><div id="storyCost" class="value">-</div></div>
-        <div class="story-card"><div class="label">Latency Delta</div><div id="storyLatency" class="value">-</div></div>
-        <div class="story-card"><div class="label">Reliability Gain</div><div id="storyReliability" class="value">-</div></div>
-        <div class="story-card"><div class="label">Safety Incidents Blocked</div><div id="storySafety" class="value">-</div></div>
+        <div class="story-card"><div id="storyCostLabel" class="label">Cost Improvement</div><div id="storyCost" class="value">-</div></div>
+        <div class="story-card"><div id="storyLatencyLabel" class="label">Latency Improvement</div><div id="storyLatency" class="value">-</div></div>
+        <div class="story-card"><div id="storyReliabilityLabel" class="label">Reliability Lift</div><div id="storyReliability" class="value">-</div></div>
+        <div class="story-card"><div id="storySafetyLabel" class="label">Guardrail Blocks</div><div id="storySafety" class="value">-</div></div>
       </div>
 
       <div class="bars">
@@ -619,6 +723,7 @@
     let storyCompare = null;
     let storySummary = null;
     let storyFeed = [];
+    let storyNoteMode = "scenario";
 
     const el = {
       search: document.getElementById("search"),
@@ -628,6 +733,8 @@
       tableWrap: document.getElementById("tableWrap"),
       providerPills: document.getElementById("providerPills"),
       compareGrid: document.getElementById("compareGrid"),
+      clearCompareBtn: document.getElementById("clearCompareBtn"),
+      compareCount: document.getElementById("compareCount"),
       refreshBtn: document.getElementById("refreshBtn"),
       resetBtn: document.getElementById("resetBtn"),
       priceTierInputs: document.querySelectorAll('input[name="priceTier"]'),
@@ -642,6 +749,14 @@
       storyMode: document.getElementById("storyMode"),
       runStoryBtn: document.getElementById("runStoryBtn"),
       execSummaryBtn: document.getElementById("execSummaryBtn"),
+      storyScenarioTitle: document.getElementById("storyScenarioTitle"),
+      storyScenarioDetail: document.getElementById("storyScenarioDetail"),
+      storyBaselineModel: document.getElementById("storyBaselineModel"),
+      storyEarModel: document.getElementById("storyEarModel"),
+      storyCostLabel: document.getElementById("storyCostLabel"),
+      storyLatencyLabel: document.getElementById("storyLatencyLabel"),
+      storyReliabilityLabel: document.getElementById("storyReliabilityLabel"),
+      storySafetyLabel: document.getElementById("storySafetyLabel"),
       storyCost: document.getElementById("storyCost"),
       storyLatency: document.getElementById("storyLatency"),
       storyReliability: document.getElementById("storyReliability"),
@@ -722,7 +837,7 @@
 
       renderScenarioOptions();
       renderSafetyFeed();
-      renderExecutiveNote();
+      renderStoryNote();
       await runStoryScenario();
     }
 
@@ -746,12 +861,43 @@
       `).join("");
     }
 
-    function renderExecutiveNote() {
-      if (!storySummary) {
-        el.execNote.textContent = "Executive summary unavailable.";
+    function currentScenario() {
+      const scenarioId = el.scenarioSelect.value || (storyScenarios[0] && storyScenarios[0].id);
+      return storyScenarios.find((s) => s.id === scenarioId) || null;
+    }
+
+    function renderStorySnapshot() {
+      const scenario = currentScenario();
+      if (!scenario || !storyCompare) {
+        el.storyScenarioTitle.textContent = "Scenario unavailable";
+        el.storyScenarioDetail.textContent = "No replay scenario is loaded.";
+        el.storyBaselineModel.textContent = "-";
+        el.storyEarModel.textContent = "-";
         return;
       }
-      el.execNote.textContent = `Across ${storySummary.scenarios_count} demo scenarios, EAR improves cost by ${storySummary.avg_cost_delta_pct.toFixed(1)}%, latency by ${storySummary.avg_latency_delta_pct.toFixed(1)}%, and blocks ${storySummary.total_safety_incidents_blocked} safety incidents.`;
+
+      el.storyScenarioTitle.textContent = scenario.title;
+      el.storyScenarioDetail.textContent = `Comparing ${storyCompare.baseline_model} against ${storyCompare.ear_model} for this workflow.`;
+      el.storyBaselineModel.textContent = storyCompare.baseline_model;
+      el.storyEarModel.textContent = storyCompare.ear_model;
+    }
+
+    function renderStoryNote() {
+      if (storyNoteMode === "summary") {
+        if (!storySummary) {
+          el.execNote.textContent = "Portfolio summary unavailable.";
+          return;
+        }
+        el.execNote.textContent = `Portfolio summary: across ${storySummary.scenarios_count} demo scenarios, EAR improves cost by ${storySummary.avg_cost_delta_pct.toFixed(1)}%, latency by ${storySummary.avg_latency_delta_pct.toFixed(1)}%, improves reliability by ${storySummary.average_reliability_gain_pct.toFixed(1)}%, and blocks ${storySummary.total_safety_incidents_blocked} safety incidents.`;
+        return;
+      }
+
+      if (!storyCompare) {
+        el.execNote.textContent = "Scenario takeaway unavailable.";
+        return;
+      }
+
+      el.execNote.textContent = `Scenario takeaway: EAR changes this flow from ${storyCompare.baseline_model} to ${storyCompare.ear_model}, cutting cost by ${storyCompare.cost_delta_pct.toFixed(1)}%, reducing latency by ${storyCompare.latency_delta_pct.toFixed(1)}%, improving reliability by ${storyCompare.reliability_gain_pct.toFixed(1)}%, and blocking ${storyCompare.safety_incidents_blocked} safety incidents.`;
     }
 
     function renderStoryCards() {
@@ -759,14 +905,26 @@
       const mode = el.storyMode.value;
 
       if (mode === "baseline") {
+        el.storyCostLabel.textContent = "Baseline Cost";
+        el.storyLatencyLabel.textContent = "Baseline Latency";
+        el.storyReliabilityLabel.textContent = "Reliability Lift vs Baseline";
+        el.storySafetyLabel.textContent = "Guardrail Blocks";
         el.storyCost.textContent = `$${storyCompare.baseline_cost_usd.toFixed(4)}`;
         el.storyLatency.textContent = `${storyCompare.baseline_latency_ms.toFixed(0)} ms`;
-        el.storyReliability.textContent = "baseline";
+        el.storyReliability.textContent = "+0.0%";
       } else if (mode === "ear") {
+        el.storyCostLabel.textContent = "EAR Cost";
+        el.storyLatencyLabel.textContent = "EAR Latency";
+        el.storyReliabilityLabel.textContent = "Reliability Lift vs Baseline";
+        el.storySafetyLabel.textContent = "Guardrail Blocks";
         el.storyCost.textContent = `$${storyCompare.ear_cost_usd.toFixed(4)}`;
         el.storyLatency.textContent = `${storyCompare.ear_latency_ms.toFixed(0)} ms`;
         el.storyReliability.textContent = `+${storyCompare.reliability_gain_pct.toFixed(1)}%`;
       } else {
+        el.storyCostLabel.textContent = "Cost Improvement";
+        el.storyLatencyLabel.textContent = "Latency Improvement";
+        el.storyReliabilityLabel.textContent = "Reliability Lift";
+        el.storySafetyLabel.textContent = "Guardrail Blocks";
         el.storyCost.textContent = `+${storyCompare.cost_delta_pct.toFixed(1)}%`;
         el.storyLatency.textContent = `+${storyCompare.latency_delta_pct.toFixed(1)}%`;
         el.storyReliability.textContent = `+${storyCompare.reliability_gain_pct.toFixed(1)}%`;
@@ -817,7 +975,11 @@
         };
       }
 
+      storyNoteMode = "scenario";
+      el.execSummaryBtn.textContent = "Show Portfolio Summary";
+      renderStorySnapshot();
       renderStoryCards();
+      renderStoryNote();
     }
 
     function providerFromId(modelId) {
@@ -1007,8 +1169,17 @@
       renderTableOnly();
     }
 
+    function clearSelectedModels() {
+      selectedIds.clear();
+      renderCompare();
+      renderTableOnly();
+    }
+
     function renderCompare() {
       const rows = allRows.filter(r => selectedIds.has(r.id));
+      el.compareCount.textContent = `Selected: ${rows.length}/4`;
+      el.clearCompareBtn.disabled = rows.length === 0;
+
       if (!rows.length) {
         el.compareGrid.innerHTML = "<div class='muted'>Select rows from the table to compare models side by side.</div>";
         return;
@@ -1214,11 +1385,19 @@
     el.priceTierInputs.forEach((input) => input.addEventListener("change", render));
     el.refreshBtn.addEventListener("click", loadData);
     el.resetBtn.addEventListener("click", resetFilters);
+    el.clearCompareBtn.addEventListener("click", clearSelectedModels);
     el.refreshSeconds.addEventListener("change", configureAutoRefresh);
     el.runStoryBtn.addEventListener("click", runStoryScenario);
-    el.execSummaryBtn.addEventListener("click", renderExecutiveNote);
+    el.execSummaryBtn.addEventListener("click", () => {
+      storyNoteMode = storyNoteMode === "summary" ? "scenario" : "summary";
+      el.execSummaryBtn.textContent = storyNoteMode === "summary" ? "Show Scenario Takeaway" : "Show Portfolio Summary";
+      renderStoryNote();
+    });
     el.scenarioSelect.addEventListener("change", runStoryScenario);
-    el.storyMode.addEventListener("change", renderStoryCards);
+    el.storyMode.addEventListener("change", () => {
+      renderStoryCards();
+      renderStoryNote();
+    });
 
     configureAutoRefresh();
     loadData();
