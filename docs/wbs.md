@@ -294,7 +294,7 @@ Track delivery using the status column for every item.
 
 | ID | User Story | Priority | Points | Status |
 | --- | --- | --- | --- | --- |
-| US-9 | As a user, I want EAR to execute the selected model and return the final answer so routing directly improves my workflow. | P1 | 8 | `[ ]` |
+| US-9 | As a user, I want EAR to execute the selected model and return the final answer so routing directly improves my workflow. | P1 | 8 | `[x]` |
 
 **Acceptance Criteria**
 - Given `ear route --execute`, when a model is selected, then EAR calls the model and returns generated content with route metadata.
@@ -304,11 +304,11 @@ Track delivery using the status column for every item.
 
 | Task ID | Task | Sub-tasks | Priority | Points | Status |
 | --- | --- | --- | --- | --- | --- |
-| T9.1 | Add LiteLLM execution adapter | Create provider-agnostic request/response interface; map OpenRouter models; configure auth/timeouts | P1 | 2 | `[ ]` |
-| T9.2 | Implement execution orchestration service | Compose guardrails, router, executor, and fallback into one deterministic pipeline | P1 | 3 | `[ ]` |
-| T9.3 | Extend CLI and MCP contracts for execution mode | Add explicit execute flag and output schema fields for response text and execution metadata | P1 | 2 | `[ ]` |
-| T9.4 | Emit real execution telemetry | Record actual end-to-end latency, token usage, cost estimate, and fallback attempt counts | P1 | 2 | `[ ]` |
-| T9.5 | Add integration tests for execution paths | Mock success, 429, 5xx, timeout, and malformed payloads; assert fallback and telemetry correctness | P1 | 3 | `[ ]` |
+| T9.1 | Add LiteLLM execution adapter | Create provider-agnostic request/response interface; map OpenRouter models; configure auth/timeouts | P1 | 2 | `[x]` |
+| T9.2 | Implement execution orchestration service | Compose guardrails, router, executor, and fallback into one deterministic pipeline | P1 | 3 | `[x]` |
+| T9.3 | Extend CLI and MCP contracts for execution mode | Add explicit execute flag and output schema fields for response text and execution metadata | P1 | 2 | `[x]` |
+| T9.4 | Emit real execution telemetry | Record actual end-to-end latency, token usage, cost estimate, and fallback attempt counts | P1 | 2 | `[x]` |
+| T9.5 | Add integration tests for execution paths | Mock success, 429, 5xx, timeout, and malformed payloads; assert fallback and telemetry correctness | P1 | 3 | `[x]` |
 
 ### Feature F10 — Adaptive Intent and Semantic Safety
 

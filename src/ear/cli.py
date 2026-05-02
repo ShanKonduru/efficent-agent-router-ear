@@ -10,8 +10,10 @@ from typing import Any
 import typer
 
 from ear.config import get_config
+from ear.fallback import AllCandidatesExhausted
 from ear.metrics import get_metrics_collector
 from ear.models import BudgetPriority, RouteMetric, RoutingRequest, TaskType
+from ear.orchestrator import ExecutionOrchestrator, GuardrailsBlockedError
 from ear.registry import RegistryFactory
 from ear.router_engine import RouterEngine
 
@@ -37,13 +39,19 @@ def route(
         "-b",
         help="Budget priority: low | medium | high.",
     ),
+    execute: bool = typer.Option(
+        False,
+        "--execute",
+        "-e",
+        help="Execute the prompt against the selected model and display the response.",
+    ),
     json_output: bool = typer.Option(
         False,
         "--json",
         help="Output result as JSON for scripting pipelines.",
     ),
 ) -> None:
-    """Route a prompt to the best available model and execute it."""
+    """Route a prompt to the best available model and optionally execute it."""
     if not prompt.strip():
         typer.echo("Error: prompt must not be empty.", err=True)
         raise typer.Exit(code=1)
@@ -71,6 +79,52 @@ def route(
         typer.echo("No models available from registry.", err=True)
         raise typer.Exit(code=1)
 
+    if execute:
+        orchestrator = ExecutionOrchestrator.from_config(config)
+        try:
+            result = asyncio.run(orchestrator.run(request, models))
+        except GuardrailsBlockedError as exc:
+            typer.echo(f"Blocked by guardrails: {exc.reason}", err=True)
+            raise typer.Exit(code=1) from exc
+        except AllCandidatesExhausted as exc:
+            typer.echo(f"All candidates exhausted: {exc}", err=True)
+            raise typer.Exit(code=1) from exc
+
+        payload: dict[str, Any] = {
+            "selected_model": result.response.model,
+            "task_type": result.decision.task_type.value,
+            "budget_priority": budget.value,
+            "suitability_score": result.decision.suitability_score,
+            "fallback_chain": result.decision.fallback_chain,
+            "fallback_trace": result.fallback_trace,
+            "reason": result.decision.reason,
+            "response_text": result.response.content,
+            "prompt_tokens": result.response.prompt_tokens,
+            "completion_tokens": result.response.completion_tokens,
+            "total_tokens": result.response.total_tokens,
+            "estimated_cost_usd": result.estimated_cost_usd,
+            "end_to_end_latency_ms": result.end_to_end_latency_ms,
+        }
+
+        if json_output:
+            typer.echo(json.dumps(payload, indent=2, sort_keys=True))
+            return
+
+        typer.echo(f"Selected model : {result.response.model}")
+        typer.echo(f"Task type      : {result.decision.task_type.value}")
+        typer.echo(f"Budget         : {budget.value}")
+        typer.echo(f"Score          : {result.decision.suitability_score:.6f}")
+        typer.echo(f"Fallback chain : {', '.join(result.decision.fallback_chain) if result.decision.fallback_chain else '(none)'}")
+        typer.echo(f"Fallback trace : {', '.join(result.fallback_trace)}")
+        typer.echo(f"Reason         : {result.decision.reason}")
+        typer.echo(f"Tokens         : prompt={result.response.prompt_tokens} completion={result.response.completion_tokens}")
+        typer.echo(f"Est. cost USD  : {result.estimated_cost_usd:.8f}")
+        typer.echo(f"Latency ms     : {result.end_to_end_latency_ms:.3f}")
+        typer.echo("")
+        typer.echo("--- Response ---")
+        typer.echo(result.response.content)
+        return
+
     router = RouterEngine()
     started = time.perf_counter()
     try:
@@ -80,7 +134,7 @@ def route(
         raise typer.Exit(code=1) from exc
     elapsed_ms = (time.perf_counter() - started) * 1000.0
 
-    # For now, route computes decision only; cost estimation is a placeholder.
+    # Route-only mode — no real model call; cost is zero.
     get_metrics_collector().record(
         RouteMetric(
             model_id=decision.selected_model,
@@ -91,7 +145,7 @@ def route(
         )
     )
 
-    payload: dict[str, Any] = {
+    payload = {
         "selected_model": decision.selected_model,
         "task_type": decision.task_type.value,
         "budget_priority": budget.value,

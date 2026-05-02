@@ -98,6 +98,9 @@ class RouteMetric(BaseModel):
     estimated_cost_usd: float = Field(..., ge=0)
     task_type: TaskType
     success: bool
+    prompt_tokens: int = Field(default=0, ge=0, description="Prompt tokens used (0 if route-only).")
+    completion_tokens: int = Field(default=0, ge=0, description="Completion tokens used (0 if route-only).")
+    fallback_attempts: int = Field(default=0, ge=0, description="Number of fallback candidates tried before success.")
 
 
 class SessionSummary(BaseModel):
@@ -107,3 +110,27 @@ class SessionSummary(BaseModel):
     total_cost_usd: float = Field(default=0.0, ge=0)
     total_latency_ms: float = Field(default=0.0, ge=0)
     calls_by_model: dict[str, int] = Field(default_factory=dict)
+
+
+class ExecutionResponse(BaseModel):
+    """Raw response from executing a prompt against a model provider."""
+
+    model: str = Field(..., description="Model ID that produced the response.")
+    content: str = Field(..., description="Generated text content.")
+    prompt_tokens: int = Field(default=0, ge=0)
+    completion_tokens: int = Field(default=0, ge=0)
+    total_tokens: int = Field(default=0, ge=0)
+
+
+class ExecutionResult(BaseModel):
+    """Full result of a route-and-execute operation."""
+
+    decision: RoutingDecision = Field(..., description="Routing decision made before execution.")
+    response: ExecutionResponse = Field(..., description="Response from the chosen model.")
+    fallback_trace: list[str] = Field(
+        default_factory=list,
+        description="Ordered list of model IDs attempted (including the successful one).",
+    )
+    end_to_end_latency_ms: float = Field(..., ge=0, description="Wall-clock time from request to response.")
+    estimated_cost_usd: float = Field(..., ge=0, description="Estimated cost based on token usage and pricing.")
+    guardrail_result: GuardrailResult = Field(..., description="Safety check outcome.")

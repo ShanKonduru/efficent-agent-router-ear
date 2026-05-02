@@ -13,8 +13,10 @@ from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, Field
 
 from ear.config import get_config
+from ear.fallback import AllCandidatesExhausted
 from ear.metrics import get_metrics_collector
 from ear.models import BudgetPriority, RouteMetric, RoutingRequest
+from ear.orchestrator import ExecutionOrchestrator, GuardrailsBlockedError
 from ear.registry import RegistryFactory
 from ear.router_engine import RouterEngine
 
@@ -26,6 +28,7 @@ class RouteAndExecuteInput(BaseModel):
 
     task_description: str = Field(..., min_length=1)
     budget_priority: BudgetPriority = Field(default=BudgetPriority.MEDIUM)
+    execute: bool = Field(default=False, description="When True, execute the prompt against the selected model.")
 
 
 class EARMCPService:
@@ -35,11 +38,13 @@ class EARMCPService:
         self,
         task_description: str,
         budget_priority: BudgetPriority = BudgetPriority.MEDIUM,
+        execute: bool = False,
     ) -> dict[str, Any]:
-        """Route a task and return decision metadata."""
+        """Route a task and optionally execute it against the selected model."""
         request_input = RouteAndExecuteInput(
             task_description=task_description,
             budget_priority=budget_priority,
+            execute=execute,
         )
 
         config = get_config()
@@ -50,6 +55,31 @@ class EARMCPService:
             prompt=request_input.task_description,
             budget_priority=request_input.budget_priority,
         )
+
+        if request_input.execute:
+            orchestrator = ExecutionOrchestrator.from_config(config)
+            try:
+                result = await orchestrator.run(request, models)
+            except GuardrailsBlockedError as exc:
+                return {"error": "guardrails_blocked", "reason": exc.reason}
+            except AllCandidatesExhausted as exc:
+                return {"error": "all_candidates_exhausted", "reason": str(exc)}
+
+            return {
+                "selected_model": result.response.model,
+                "fallback_chain": result.decision.fallback_chain,
+                "fallback_trace": result.fallback_trace,
+                "task_type": result.decision.task_type.value,
+                "suitability_score": result.decision.suitability_score,
+                "reason": result.decision.reason,
+                "response_text": result.response.content,
+                "prompt_tokens": result.response.prompt_tokens,
+                "completion_tokens": result.response.completion_tokens,
+                "total_tokens": result.response.total_tokens,
+                "estimated_cost_usd": result.estimated_cost_usd,
+                "end_to_end_latency_ms": result.end_to_end_latency_ms,
+            }
+
         started = time.perf_counter()
         decision = RouterEngine().decide(request, models)
         elapsed_ms = (time.perf_counter() - started) * 1000.0
@@ -85,15 +115,16 @@ def _build_server(service: EARMCPService | None = None) -> FastMCP:
     @mcp.tool(
         name="route_and_execute",
         description=(
-            "Route a task description to the most suitable model and return "
-            "the decision with fallback chain."
+            "Route a task description to the most suitable model and optionally execute it. "
+            "Set execute=True to perform a real model call and receive response_text."
         ),
     )
     async def route_and_execute(
         task_description: str,
         budget_priority: BudgetPriority = BudgetPriority.MEDIUM,
+        execute: bool = False,
     ) -> dict[str, Any]:
-        return await svc.route_and_execute(task_description, budget_priority)
+        return await svc.route_and_execute(task_description, budget_priority, execute)
 
     @mcp.resource(
         "ear://session/stats",
