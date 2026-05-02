@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 import math
 
+from ear.intent import HeuristicIntentClassifier, IntentClassifier
 from ear.models import (
     BudgetPriority,
     LLMSpec,
@@ -42,66 +43,12 @@ CODING_PREFERRED_MODELS: frozenset[str] = frozenset(
     }
 )
 
-# Keyword sets used by IntentClassifier (lowercase, checked against lowercased prompt).
-_CODING_KEYWORDS: frozenset[str] = frozenset(
-    {
-        "def ", "class ", "import ", "function ", "algorithm", "debug",
-        "refactor", "implement", "code", "script", "program", "=>",
-    }
-)
-
-_PLANNING_KEYWORDS: frozenset[str] = frozenset(
-    {
-        "plan", "roadmap", "strategy", "step by step", "steps to", "outline",
-        "design", "architecture", "sequence", "schedule", "milestone",
-    }
-)
-
-_RESEARCH_KEYWORDS: frozenset[str] = frozenset(
-    {
-        "research", "survey", "summarize", "compare", "difference between",
-        "explain", "what is", "literature", "study", "analyze", "review",
-    }
-)
-
 # Default per-token cost used when a model carries no pricing data.
 _DEFAULT_COST_PER_TOKEN: float = 0.001
 # Quality bonus for task-affinity match (e.g. coding model on coding task).
 _AFFINITY_BONUS: float = 0.3
 # Small constant preventing division-by-zero in the scoring formula.
 _EPSILON: float = 1e-9
-
-
-class IntentClassifier:
-    """Classifies a prompt into a TaskType using deterministic heuristics."""
-
-    def classify(self, prompt: str) -> TaskType:
-        """Return the TaskType for the given *prompt*.
-
-        Detection order (highest specificity first):
-
-        1. Any fenced code block (triple-backtick) → ``CODING``
-        2. Keyword vote among CODING / PLANNING / RESEARCH sets; winner wins.
-        3. Tie or no signals → ``SIMPLE``.
-        """
-        # Fenced code block is an unambiguous coding signal.
-        if "```" in prompt:
-            return TaskType.CODING
-
-        lower = prompt.lower()
-        coding_hits = sum(1 for kw in _CODING_KEYWORDS if kw in lower)
-        planning_hits = sum(1 for kw in _PLANNING_KEYWORDS if kw in lower)
-        research_hits = sum(1 for kw in _RESEARCH_KEYWORDS if kw in lower)
-
-        max_hits = max(coding_hits, planning_hits, research_hits)
-
-        if max_hits == 0:
-            return TaskType.SIMPLE
-        if coding_hits == max_hits:
-            return TaskType.CODING
-        if planning_hits == max_hits:
-            return TaskType.PLANNING
-        return TaskType.RESEARCH
 
 
 class SuitabilityScorer:
@@ -161,7 +108,7 @@ class RouterEngine:
         classifier: IntentClassifier | None = None,
         scorer: SuitabilityScorer | None = None,
     ) -> None:
-        self._classifier = classifier or IntentClassifier()
+        self._classifier = classifier or HeuristicIntentClassifier()
         self._scorer = scorer or SuitabilityScorer()
 
     def decide(

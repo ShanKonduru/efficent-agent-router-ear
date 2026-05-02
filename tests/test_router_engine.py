@@ -10,10 +10,10 @@ from __future__ import annotations
 
 import pytest
 
+from ear.intent import HeuristicIntentClassifier, IntentClassifier
 from ear.models import BudgetPriority, LLMPricing, LLMSpec, RoutingRequest, TaskType
 from ear.router_engine import (
     MEGA_CONTEXT_THRESHOLD,
-    IntentClassifier,
     RouterEngine,
     SuitabilityScorer,
 )
@@ -25,7 +25,7 @@ from ear.router_engine import (
 
 class TestIntentClassifier:
     def setup_method(self) -> None:
-        self.clf = IntentClassifier()
+        self.clf = HeuristicIntentClassifier()
 
     def test_fenced_code_block_returns_coding(self) -> None:
         assert self.clf.classify("```python\nprint('hi')\n```") == TaskType.CODING
