@@ -88,6 +88,16 @@ class GuardrailResult(BaseModel):
     injection_detected: bool = Field(default=False)
     pii_detected: bool = Field(default=False)
     reason: Optional[str] = Field(default=None, description="Explanation if not passed.")
+    reason_codes: list[str] = Field(
+        default_factory=list,
+        description="Machine-readable policy reason codes.",
+    )
+    risk_score: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Semantic injection risk score in [0, 1].",
+    )
 
 
 class RouteMetric(BaseModel):

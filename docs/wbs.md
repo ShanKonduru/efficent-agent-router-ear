@@ -324,7 +324,7 @@ Track delivery using the status column for every item.
 | Task ID | Task | Sub-tasks | Priority | Points | Status |
 | --- | --- | --- | --- | --- | --- |
 | T9.6 | Add advanced intent classifier | Integrate local embedding classifier or flash-model intent endpoint with deterministic fallback to heuristics | P1 | 2 | `[x]` |
-| T9.7 | Implement semantic prompt-injection detector | Add risk scoring pipeline and policy thresholds; return machine-readable reason codes | P1 | 3 | `[ ]` |
+| T9.7 | Implement semantic prompt-injection detector | Add risk scoring pipeline and policy thresholds; return machine-readable reason codes | P1 | 3 | `[x]` |
 | T9.8 | Add mini-controller routing hints | Define strict JSON schema for controller output; validate and merge with deterministic scoring rules | P2 | 2 | `[ ]` |
 | T9.9 | Build evaluation harness and benchmark suite | Compare precision/recall vs current heuristics for intent and injection detection | P2 | 3 | `[ ]` |
 
