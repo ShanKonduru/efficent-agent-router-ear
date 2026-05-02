@@ -15,8 +15,8 @@
 6. Observability and Cost/Latency Metrics (`[x]`)
 7. MCP Server and Tool Exposure (`[x]`)
 8. CI/CD and Security Automation (`[x]`)
-9. Execution Plane and Adaptive Routing Intelligence (`[ ]`)
-10. Leadership Demo Frontend and GTM Showcase (`[~]`)
+9. Execution Plane and Adaptive Routing Intelligence (`[x]`)
+10. Leadership Demo Frontend and GTM Showcase (`[x]`)
 
 ## Recommended Execution Order (Current State)
 1. E10 F9: implement true route-and-execute runtime (LiteLLM + fallback + real telemetry)
@@ -118,42 +118,42 @@
   - T8.4 Verify ongoing branch synchronization policy for `master` and `main` (1 pt) `[x]`
 
 ### F9. Unified Execution Runtime (LiteLLM)
-- Story US-9 (8 pts) `[ ]`: As a user, I want EAR to execute routed model calls and return final answers with fallback transparency.
+- Story US-9 (8 pts) `[x]`: As a user, I want EAR to execute routed model calls and return final answers with fallback transparency.
 - Acceptance highlights:
   - Route decision is followed by real provider execution.
   - MCP `route_and_execute` returns model output plus route metadata.
   - 429/5xx/timeout failures trigger ordered fallback attempts.
   - Metrics capture real latency, tokens, and cost from provider usage.
 - Tasks:
-  - T9.1 Add LiteLLM execution adapter and provider mapping (2 pts) `[ ]`
-  - T9.2 Implement execution orchestration service (3 pts) `[ ]`
-  - T9.3 Extend CLI and MCP contracts for execute mode (2 pts) `[ ]`
-  - T9.4 Emit real execution telemetry (2 pts) `[ ]`
-  - T9.5 Add integration tests for success/failure execution paths (3 pts) `[ ]`
+  - T9.1 Add LiteLLM execution adapter and provider mapping (2 pts) `[x]`
+  - T9.2 Implement execution orchestration service (3 pts) `[x]`
+  - T9.3 Extend CLI and MCP contracts for execute mode (2 pts) `[x]`
+  - T9.4 Emit real execution telemetry (2 pts) `[x]`
+  - T9.5 Add integration tests for success/failure execution paths (3 pts) `[x]`
 
 ### F10. Adaptive Intent and Semantic Safety
-- Story US-10 (5 pts) `[ ]`: As a platform owner, I want semantic intent and injection analysis so routing quality and safety improve beyond keyword rules.
+- Story US-10 (5 pts) `[x]`: As a platform owner, I want semantic intent and injection analysis so routing quality and safety improve beyond keyword rules.
 - Acceptance highlights:
   - Advanced intent classification outperforms current heuristic baseline.
   - Semantic jailbreak analysis adds policy risk scoring and reason codes.
   - Optional mini-controller returns strict JSON route hints without breaking deterministic safeguards.
 - Tasks:
-  - T9.6 Integrate embedding or flash-model intent classifier (2 pts) `[ ]`
-  - T9.7 Implement semantic prompt-injection detector (3 pts) `[ ]`
-  - T9.8 Add mini-controller routing hint flow with schema validation (2 pts) `[ ]`
-  - T9.9 Build benchmark suite versus heuristic baseline (3 pts) `[ ]`
+  - T9.6 Integrate embedding or flash-model intent classifier (2 pts) `[x]`
+  - T9.7 Implement semantic prompt-injection detector (3 pts) `[x]`
+  - T9.8 Add mini-controller routing hint flow with schema validation (2 pts) `[x]`
+  - T9.9 Build benchmark suite versus heuristic baseline (3 pts) `[x]`
 
 ### F11. Leadership Demo Frontend
-- Story US-11 (5 pts) `[~]`: As a leadership stakeholder, I want an interactive EAR demo that clearly shows ROI and risk reduction.
+- Story US-11 (5 pts) `[x]`: As a leadership stakeholder, I want an interactive EAR demo that clearly shows ROI and risk reduction.
 - Acceptance highlights:
   - End-to-end scenario runs show selected model, response, fallback trail, and safety events.
   - Baseline versus EAR mode shows measurable deltas for cost, latency, and reliability.
   - Executive view is presentation-ready across desktop and mobile.
 - Tasks:
-  - T10.1 Build responsive demo UI shell and scenario flow (3 pts) `[~]`
-  - T10.2 Add backend API bridge and deterministic replay data (2 pts) `[ ]`
-  - T10.3 Implement KPI dashboards and storytelling panels (2 pts) `[ ]`
-  - T10.4 Add one-click demo script and smoke tests (1 pt) `[ ]`
+  - T10.1 Build responsive demo UI shell and scenario flow (3 pts) `[x]`
+  - T10.2 Add backend API bridge and deterministic replay data (2 pts) `[x]`
+  - T10.3 Implement KPI dashboards and storytelling panels (2 pts) `[x]`
+  - T10.4 Add one-click demo script and smoke tests (1 pt) `[x]`
 
 ## Milestones
 
@@ -182,13 +182,13 @@
   - MCP tool available
   - CI pipeline gates passing
 
-### M5. Execution and Intelligence (Target: Week 6-7) `[ ]`
+### M5. Execution and Intelligence (Target: Week 6-7) `[x]`
 - Scope: F9, F10
 - Exit criteria:
   - Route decisions execute real model calls with resilient fallback
   - Semantic intent/injection controls validated against benchmark set
 
-### M6. Frontend and Leadership Demo (Target: Week 8) `[~]`
+### M6. Frontend and Leadership Demo (Target: Week 8) `[x]`
 - Scope: F11
 - Exit criteria:
   - Investor/leadership demo app shows measurable EAR value narrative

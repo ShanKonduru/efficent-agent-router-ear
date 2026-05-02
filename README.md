@@ -152,8 +152,8 @@ Workspace configuration is stored in .vscode/mcp.json.
 - M2: Router core and CLI
 - M3: Guardrails and metrics
 - M4: MCP server and CI/CD gates
-- M5: Execution runtime and adaptive routing intelligence (planned)
-- M6: Leadership/investor demo frontend (in progress)
+- M5: Execution runtime and adaptive routing intelligence (completed)
+- M6: Leadership/investor demo frontend (completed)
 
 ## Contributing Expectations
 - Preserve clean architecture boundaries.
