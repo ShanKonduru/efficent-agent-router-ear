@@ -167,6 +167,10 @@ def route(
     typer.echo(f"Reason         : {decision.reason}")
 
 
+# Short alias: `ear r "prompt"`
+app.command(name="r", hidden=True)(route)
+
+
 @app.command(name="inspect-models")
 def inspect_models(
     json_output: bool = typer.Option(
@@ -205,6 +209,11 @@ def inspect_models(
         )
 
 
+# Short aliases: `ear models` / `ear im`
+app.command(name="models", hidden=True)(inspect_models)
+app.command(name="im", hidden=True)(inspect_models)
+
+
 @app.command()
 def stats(
     json_output: bool = typer.Option(
@@ -229,6 +238,10 @@ def stats(
             typer.echo(f"  - {model_id}: {count}")
 
 
+# Short alias: `ear s`
+app.command(name="s", hidden=True)(stats)
+
+
 @app.command(name="demo-server")
 def demo_server(
     host: str = typer.Option("127.0.0.1", help="Host interface to bind the demo API server."),
@@ -239,8 +252,34 @@ def demo_server(
     serve_demo_api(host=host, port=port)
 
 
+# Short alias: `ear demo`
+app.command(name="demo", hidden=True)(demo_server)
+
+
+# All registered subcommand names (including aliases). Used to detect when
+# the user types a bare prompt without an explicit subcommand so we can
+# default to `route`.
+_SUBCOMMANDS: frozenset[str] = frozenset({
+    "route", "r",
+    "inspect-models", "models", "im",
+    "stats", "s",
+    "demo-server", "demo",
+})
+
+
 def main() -> None:
-    """Entry point for the ear CLI."""
+    """Entry point for the ear CLI.
+
+    If the first argument is not a known subcommand (and not a flag), it is
+    treated as a prompt and forwarded to the ``route`` command automatically,
+    so ``ear "my prompt"`` is equivalent to ``ear route "my prompt"``.
+    """
+    if (
+        len(sys.argv) > 1
+        and sys.argv[1] not in _SUBCOMMANDS
+        and not sys.argv[1].startswith("-")
+    ):
+        sys.argv.insert(1, "route")
     app()
 
 
