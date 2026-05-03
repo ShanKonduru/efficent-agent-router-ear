@@ -52,6 +52,16 @@ class EARConfig(BaseSettings):
         description="HTTP timeout in seconds for all outbound requests.",
     )
 
+    ear_ollama_base_url: str = Field(
+        default="http://localhost:11434",
+        description="Base URL for the local Ollama API.",
+    )
+
+    ear_ollama_enabled: bool = Field(
+        default=False,
+        description="Enable Ollama as a private provider for sensitive and blocked prompts.",
+    )
+
 
 def get_config() -> EARConfig:
     """Return a validated EARConfig loaded from the environment."""

@@ -71,12 +71,16 @@ class LLMPricing(BaseModel):
 
 
 class LLMSpec(BaseModel):
-    """Specification for a single LLM available via OpenRouter."""
+    """Specification for a single LLM available via OpenRouter or a local provider."""
 
-    id: str = Field(..., description="OpenRouter model identifier.")
+    id: str = Field(..., description="Model identifier (e.g. 'openai/gpt-4o-mini' or 'ollama/llama3.2').")
     name: Optional[str] = Field(default=None, description="Human-readable model name.")
     context_length: int = Field(..., gt=0, description="Maximum context window in tokens.")
     pricing: Optional[LLMPricing] = Field(default=None, description="Pricing data if available.")
+    trusted: bool = Field(
+        default=False,
+        description="True for local/vetted providers (e.g. Ollama) safe for PII and sensitive prompts.",
+    )
 
     @field_validator("id")
     @classmethod

@@ -36,7 +36,8 @@ Track delivery using the status column for every item.
 | E14 | Live Execution Canary Validation | P1 | 5 | M7 | `[ ]` |
 | E15 | Benchmark Harness Execution and Results | P2 | 5 | M7 | `[ ]` |
 | E16 | Architecture Decision Records Backfill | P3 | 4 | M7 | `[ ]` |
-| | **Total** | | **116** | | |
+| E17 | Ollama Private Provider Integration | P1 | 13 | M8 | `[ ]` |
+| | **Total** | | **129** | | |
 
 ---
 
@@ -51,6 +52,7 @@ Track delivery using the status column for every item.
 | M5 — Execution and Intelligence | Week 6–7 | E10 | Real model execution active; semantic safety and adaptive intent routing validated | `[x]` |
 | M6 — Frontend and Leadership Demo | Week 8 | E11 | Web demo shows measurable business value and investor-ready narratives | `[x]` |
 | M7 — Post-Launch Hardening | Week 9–10 | E12, E13, E14, E15, E16 | Release verified on PyPI; live demo backend wired; canary executed; benchmarks documented; ADRs filed | `[ ]` |
+| M8 — Ollama Private Provider | Week 11–12 | E17 | Sensitive and injection-risk prompts routed to local Ollama; PII never sent to cloud; full test coverage maintained | `[ ]` |
 
 ---
 
@@ -493,16 +495,52 @@ Track delivery using the status column for every item.
 
 ---
 
+## E17 — Ollama Private Provider Integration
+
+> Route sensitive, PII-containing, and injection-risk prompts to a local Ollama instance so no sensitive data is ever sent to cloud providers.
+
+**Priority:** P1 · **Total Points:** 13
+
+### Feature F17 — Ollama Registry, Executor, and Safety Routing
+
+| ID | User Story | Priority | Points | Status |
+| --- | --- | --- | --- | --- |
+| US-17 | As a security owner, I want sensitive and injection-risk prompts routed to a local Ollama model so PII and suspicious inputs never reach cloud providers. | P1 | 13 | `[ ]` |
+
+**Acceptance Criteria**
+- Given `OLLAMA_BASE_URL` is configured and Ollama is running, when the registry initializes, then local Ollama models appear as `ollama/<name>` entries with `trusted=True` and zero pricing.
+- Given a prompt that triggers guardrail block (injection score ≥ block threshold), when Ollama models are available, then the request is routed to Ollama instead of raising a block error.
+- Given a prompt with PII detected, when candidates are evaluated, then only Ollama and vetted cloud providers are eligible.
+- Given a prompt with elevated injection risk (between thresholds), when candidates are evaluated, then Ollama models are preferred over cloud providers.
+- Given `OLLAMA_BASE_URL` is not set or Ollama is unavailable, when a blocked prompt arrives, then `GuardrailsBlockedError` is raised as before.
+- Given any Ollama model executes, when the response is returned, then latency and token usage are captured in metrics.
+- Given coverage gates, when all new code is added, then 100% statement and branch coverage is maintained.
+
+| Task ID | Task | Sub-tasks | Priority | Points | Status |
+| --- | --- | --- | --- | --- | --- |
+| T16.1 | Add `ear_ollama_base_url` and `ear_ollama_enabled` to `EARConfig` | Optional env vars; default disabled; validate URL format on load | P1 | 1 | `[ ]` |
+| T16.2 | Implement `OllamaRegistry` | Call `GET /api/tags`; map model names to `LLMSpec(id="ollama/<name>", trusted=True, pricing=zero)` | P1 | 2 | `[ ]` |
+| T16.3 | Register `OllamaRegistry` in `RegistryFactory` | Add `"ollama"` provider entry; document extension recipe | P1 | 1 | `[ ]` |
+| T16.4 | Implement `OllamaExecutor` | Call `POST /api/chat`; parse response content and token counts; return `ExecutionResponse` | P1 | 2 | `[ ]` |
+| T16.5 | Implement `CompositeExecutor` | Dispatch to `OllamaExecutor` for `ollama/*` model IDs; delegate all others to `LLMExecutor` | P1 | 1 | `[ ]` |
+| T16.6 | Add `trusted` field to `LLMSpec` | `trusted: bool = False`; Ollama registry sets `True`; used by orchestrator for safety-routing decisions | P1 | 1 | `[ ]` |
+| T16.7 | Update `guardrails.py` | Add `"ollama"` to `PII_VETTED_PROVIDERS`; add `OLLAMA_PROVIDER` constant | P1 | 1 | `[ ]` |
+| T16.8 | Update `orchestrator.py` safety routing | Blocked prompts → Ollama if available; PII prompts → Ollama + vetted cloud; elevated risk → prefer Ollama | P1 | 2 | `[ ]` |
+| T16.9 | Add tests for `OllamaRegistry`, `OllamaExecutor`, `CompositeExecutor` | Mock `/api/tags` and `/api/chat`; assert model mapping, dispatch, and error paths | P1 | 2 | `[ ]` |
+| T16.10 | Add tests for orchestrator Ollama routing paths | Blocked → Ollama; PII → Ollama; blocked + no Ollama → GuardrailsBlockedError | P1 | 3 | `[ ]` |
+
+---
+
 ## WBS Summary
 
 | Metric | Value |
 | --- | --- |
-| Total Epics | 16 |
-| Total Features | 17 |
-| Total User Stories | 17 |
-| Total Tasks | 67 |
-| Total Story Points | 116 |
-| Estimated Timeline | 9–10 weeks |
+| Total Epics | 17 |
+| Total Features | 18 |
+| Total User Stories | 18 |
+| Total Tasks | 77 |
+| Total Story Points | 129 |
+| Estimated Timeline | 11–12 weeks |
 | Weekly Capacity Assumption | 10–14 points/week |
 
 ## Priority Order for Development
@@ -511,7 +549,8 @@ From the current project state, the remaining execution order is:
 
 1. **E12 (P1):** Verify v0.10.3 PyPI release artifacts, run install smoke test, and mirror `master` → `main`
 2. **E14 (P1):** Run live execution canary against real OpenRouter providers to validate end-to-end pipeline
-3. **E13 (P2):** Wire `DemoBackendService` endpoints to `llm_explorer.html`; replace static in-page data with `fetch()` calls
-4. **E15 (P2):** Execute benchmark harness (T9.9); publish precision/recall/F1 results to `docs/benchmark_results.md`
-5. **E16 (P3):** Backfill ADRs for LiteLLM, guardrails, MCP transport, and demo replay design
-6. Continue dependency and security posture monitoring via scheduled workflows
+3. **E17 (P1):** Implement Ollama private provider — safety-route PII and injection-risk prompts to local model
+4. **E13 (P2):** Wire `DemoBackendService` endpoints to `llm_explorer.html`; replace static in-page data with `fetch()` calls
+5. **E15 (P2):** Execute benchmark harness (T9.9); publish precision/recall/F1 results to `docs/benchmark_results.md`
+6. **E16 (P3):** Backfill ADRs for LiteLLM, guardrails, MCP transport, and demo replay design
+7. Continue dependency and security posture monitoring via scheduled workflows

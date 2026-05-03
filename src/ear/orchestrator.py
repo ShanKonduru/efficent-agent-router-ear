@@ -16,8 +16,15 @@ import logging
 import time
 
 from ear.config import EARConfig
-from ear.executor import ExecutingFallbackPipeline, LLMExecutor, _compute_cost
-from ear.guardrails import GuardrailsChecker
+from ear.executor import (
+    CompositeExecutingFallbackPipeline,
+    CompositeExecutor,
+    ExecutingFallbackPipeline,
+    LLMExecutor,
+    OllamaExecutor,
+    _compute_cost,
+)
+from ear.guardrails import GuardrailsChecker, OLLAMA_PROVIDER
 from ear.metrics import MetricsCollector, get_metrics_collector
 from ear.models import (
     ExecutionResult,
@@ -60,11 +67,21 @@ class ExecutionOrchestrator:
     @classmethod
     def from_config(cls, config: EARConfig) -> "ExecutionOrchestrator":
         """Return a production orchestrator wired to real collaborators."""
-        executor = LLMExecutor(config)
-        pipeline = ExecutingFallbackPipeline(
-            executor=executor,
-            max_retries=config.ear_max_retries,
-        )
+        openrouter_executor = LLMExecutor(config)
+        if config.ear_ollama_enabled:
+            ollama_executor = OllamaExecutor(config)
+            composite = CompositeExecutor(openrouter=openrouter_executor, ollama=ollama_executor)
+            pipeline: ExecutingFallbackPipeline | CompositeExecutingFallbackPipeline = (
+                CompositeExecutingFallbackPipeline(
+                    executor=composite,
+                    max_retries=config.ear_max_retries,
+                )
+            )
+        else:
+            pipeline = ExecutingFallbackPipeline(
+                executor=openrouter_executor,
+                max_retries=config.ear_max_retries,
+            )
         return cls(
             guardrails=GuardrailsChecker(),
             router=RouterEngine(),
@@ -87,21 +104,58 @@ class ExecutionOrchestrator:
 
         # 1. Safety pre-check
         guardrail_result = self._guardrails.check(request.prompt)
-        if not guardrail_result.passed:
-            raise GuardrailsBlockedError(guardrail_result.reason or "Safety check failed.")
 
-        # 2. If PII detected, restrict candidates to vetted providers only
-        candidate_models = models
-        if guardrail_result.pii_detected:
-            from ear.guardrails import PII_VETTED_PROVIDERS  # local import to avoid circular
-            candidate_models = [
-                m for m in models
-                if m.id.split("/")[0] in PII_VETTED_PROVIDERS
-            ]
-            logger.info(
-                "PII detected; restricted routing pool to %d vetted models.",
-                len(candidate_models),
+        # 2. Determine candidate model pool based on guardrail outcome.
+        #    Ollama (trusted=True) is always safe; cloud providers are gated.
+        ollama_models = [m for m in models if m.id.startswith(f"{OLLAMA_PROVIDER}/")]
+
+        if not guardrail_result.passed:
+            # Injection blocked: route to local Ollama only (fail-closed if unavailable).
+            if not ollama_models:
+                raise GuardrailsBlockedError(guardrail_result.reason or "Safety check failed.")
+            candidate_models = ollama_models
+            logger.warning(
+                "Guardrail blocked prompt (risk=%.2f); routing to local Ollama. reason=%s",
+                guardrail_result.risk_score,
+                guardrail_result.reason,
             )
+        elif guardrail_result.pii_detected:
+            # PII detected: prefer Ollama; fall back to vetted cloud providers.
+            from ear.guardrails import PII_VETTED_PROVIDERS  # local import to avoid circular
+            vetted_cloud = [
+                m for m in models
+                if not m.id.startswith(f"{OLLAMA_PROVIDER}/")
+                and m.id.split("/")[0] in PII_VETTED_PROVIDERS
+            ]
+            candidate_models = ollama_models + vetted_cloud
+            if not candidate_models:
+                logger.warning("PII detected but no trusted models available; using all models.")
+                candidate_models = list(models)
+            else:
+                logger.info(
+                    "PII detected; restricted routing pool to %d trusted models "
+                    "(%d Ollama, %d vetted cloud).",
+                    len(candidate_models),
+                    len(ollama_models),
+                    len(vetted_cloud),
+                )
+        elif guardrail_result.injection_detected:
+            # Elevated injection risk (below block threshold): prefer Ollama when available.
+            if ollama_models:
+                candidate_models = ollama_models
+                logger.info(
+                    "Elevated injection risk (score=%.2f); preferring Ollama models.",
+                    guardrail_result.risk_score,
+                )
+            else:
+                candidate_models = list(models)
+                logger.warning(
+                    "Elevated injection risk (score=%.2f) but no Ollama available; "
+                    "routing to cloud with caution.",
+                    guardrail_result.risk_score,
+                )
+        else:
+            candidate_models = list(models)
 
         # 3. Routing decision
         decision = self._router.decide(request, candidate_models)

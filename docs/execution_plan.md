@@ -22,6 +22,7 @@
 13. Live Execution Canary Validation (`[ ]`)
 14. Benchmark Harness Execution and Results (`[ ]`)
 15. Architecture Decision Records Backfill (`[ ]`)
+16. Ollama Private Provider Integration (`[ ]`)
 
 ## Recommended Execution Order (Current State)
 1. E10 F9: implement true route-and-execute runtime (LiteLLM + fallback + real telemetry) `[x]`
@@ -29,10 +30,11 @@
 3. E11 F11: build leadership/investor frontend demo with baseline-vs-EAR value views `[x]`
 4. E12 F12: verify v0.10.3 PyPI release artifacts and synchronize `master` → `main` `[ ]`
 5. E14 F14: run live execution canary against real OpenRouter providers `[ ]`
-6. E13 F13: wire `DemoBackendService` API endpoints to `llm_explorer.html` frontend `[ ]`
-7. E15 F15: execute benchmark harness and publish precision/recall results `[ ]`
-8. E16 F16: backfill ADRs for LiteLLM, guardrails, MCP transport, and demo replay `[ ]`
-9. Continue release governance, branch synchronization, and security posture monitoring
+6. E17 F17: implement Ollama private provider for safety-routing of sensitive and blocked prompts `[ ]`
+7. E13 F13: wire `DemoBackendService` API endpoints to `llm_explorer.html` frontend `[ ]`
+8. E15 F15: execute benchmark harness and publish precision/recall results `[ ]`
+9. E16 F16: backfill ADRs for LiteLLM, guardrails, MCP transport, and demo replay `[ ]`
+10. Continue release governance, branch synchronization, and security posture monitoring
 
 ## User Stories, Tasks, and Estimates
 
@@ -225,6 +227,26 @@
   - T15.3 Write ADR for MCP transport design and tool exposure (1 pt) `[ ]`
   - T15.4 Write ADR for demo backend deterministic replay design (1 pt) `[ ]`
 
+### F17. Ollama Private Provider Integration
+- Story US-17 (13 pts) `[ ]`: As a security owner, I want sensitive and injection-risk prompts routed to a local Ollama model so PII and suspicious inputs never reach cloud providers.
+- Acceptance highlights:
+  - Ollama models registered as `ollama/<name>` with `trusted=True` and zero pricing.
+  - Guardrail-blocked prompts route to Ollama when available instead of hard-blocking.
+  - PII prompts restricted to Ollama and vetted cloud providers only.
+  - Blocked prompt + no Ollama still raises `GuardrailsBlockedError` (fail-closed).
+  - 100% statement and branch coverage maintained.
+- Tasks:
+  - T16.1 Add `ear_ollama_base_url` and `ear_ollama_enabled` to `EARConfig` (1 pt) `[ ]`
+  - T16.2 Implement `OllamaRegistry` querying `GET /api/tags` (2 pts) `[ ]`
+  - T16.3 Register `OllamaRegistry` in `RegistryFactory` (1 pt) `[ ]`
+  - T16.4 Implement `OllamaExecutor` calling `POST /api/chat` (2 pts) `[ ]`
+  - T16.5 Implement `CompositeExecutor` dispatching by model ID prefix (1 pt) `[ ]`
+  - T16.6 Add `trusted` field to `LLMSpec` (1 pt) `[ ]`
+  - T16.7 Update `guardrails.py` to include Ollama in `PII_VETTED_PROVIDERS` (1 pt) `[ ]`
+  - T16.8 Update `orchestrator.py` safety routing for Ollama (2 pts) `[ ]`
+  - T16.9 Add tests for `OllamaRegistry`, `OllamaExecutor`, `CompositeExecutor` (2 pts) `[ ]`
+  - T16.10 Add tests for orchestrator Ollama routing paths (3 pts) `[ ]`
+
 ## Milestones
 
 ### M1. Foundation and Registry (Target: Week 1) `[x]`
@@ -274,10 +296,18 @@
   - Benchmark precision/recall results documented in `docs/benchmark_results.md`
   - ADRs filed for LiteLLM, guardrails, MCP transport, and demo replay design
 
+### M8. Ollama Private Provider (Target: Week 11–12) `[ ]`
+- Scope: F17
+- Exit criteria:
+  - Ollama registry, executor, and composite dispatcher implemented and tested
+  - PII and injection-risk prompts route to `ollama/*` models when Ollama is running
+  - Blocked prompts fail-closed when Ollama is unavailable
+  - 100% statement and branch coverage maintained across all new code
+
 ## Capacity and Sizing Summary
-- Total story points: 87
+- Total story points: 100
 - Suggested team capacity assumption: 10 to 14 points/week
-- Estimated timeline: 9 to 10 weeks depending on team size and external API volatility
+- Estimated timeline: 11 to 12 weeks depending on team size and external API volatility
 
 ## Risk Register
 1. OpenRouter payload changes break parsing

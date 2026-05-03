@@ -209,6 +209,108 @@ class OpenRouterRegistry(BaseModelRegistry):
 
 
 # ---------------------------------------------------------------------------
+# Concrete implementation - Ollama (local private provider)
+# ---------------------------------------------------------------------------
+
+_OLLAMA_TAGS_PATH = "/api/tags"
+# Default context window assigned to Ollama models when not reported by the API.
+_OLLAMA_DEFAULT_CONTEXT_LENGTH = 8_192
+
+
+class OllamaRegistry(BaseModelRegistry):
+    """Fetches locally available models from a running Ollama instance.
+
+    Ollama models are treated as *trusted* providers — they run entirely
+    on-premise and are safe for PII-containing and injection-risk prompts.
+    Pricing is always zero because local inference has no per-token cost.
+    """
+
+    _PROVIDER: str = "ollama"
+
+    def __init__(self, config: EARConfig) -> None:
+        self._config = config
+        self._cache: list[LLMSpec] = []
+        self._fetched_at: float = 0.0
+
+    @property
+    def provider_name(self) -> str:
+        return self._PROVIDER
+
+    async def get_models(self) -> list[LLMSpec]:
+        """Return cached Ollama models, refreshing when TTL has expired."""
+        if not self._is_cache_valid():
+            try:
+                await self.refresh()
+            except Exception as exc:
+                if self._cache:
+                    logger.warning(
+                        "Ollama registry refresh failed; serving stale cache. error=%r",
+                        exc,
+                    )
+                else:
+                    raise
+        return list(self._cache)
+
+    async def refresh(self) -> None:
+        """Fetch model list from Ollama and replace the internal cache."""
+        models = await self._fetch_models()
+        self._cache = models
+        self._fetched_at = time.monotonic()
+        logger.debug(
+            "Ollama registry cache refreshed. model_count=%d",
+            len(models),
+        )
+
+    async def _fetch_models(self) -> list[LLMSpec]:
+        """Call GET /api/tags and return parsed LLMSpec entries."""
+        url = self._config.ear_ollama_base_url.rstrip("/") + _OLLAMA_TAGS_PATH
+        timeout = httpx.Timeout(float(self._config.ear_request_timeout_seconds))
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            response = await client.get(url)
+            response.raise_for_status()
+            payload: dict[str, Any] = response.json()
+
+        raw_models: list[dict[str, Any]] = payload.get("models", [])
+        specs: list[LLMSpec] = []
+        for raw in raw_models:
+            spec = self._parse_model(raw)
+            if spec is not None:
+                specs.append(spec)
+
+        logger.debug("Fetched %d Ollama models.", len(specs))
+        return specs
+
+    def _parse_model(self, raw: dict[str, Any]) -> LLMSpec | None:
+        """Parse a single Ollama model dict into an LLMSpec."""
+        name: Any = raw.get("name")
+        if not name or not isinstance(name, str) or not name.strip():
+            logger.debug("Skipping Ollama model with missing name: %r", raw)
+            return None
+        model_id = f"ollama/{name.strip()}"
+        # Ollama does not always report context length; use a safe default.
+        context_length = int(raw.get("context_length", _OLLAMA_DEFAULT_CONTEXT_LENGTH))
+        if context_length <= 0:
+            context_length = _OLLAMA_DEFAULT_CONTEXT_LENGTH
+        try:
+            return LLMSpec(
+                id=model_id,
+                name=name.strip(),
+                context_length=context_length,
+                pricing=LLMPricing(prompt=0.0, completion=0.0),
+                trusted=True,
+            )
+        except Exception:
+            logger.debug("LLMSpec validation failed for Ollama model %r; skipping.", name, exc_info=True)
+            return None
+
+    def _is_cache_valid(self) -> bool:
+        if not self._cache:
+            return False
+        age = time.monotonic() - self._fetched_at
+        return age < self._config.ear_registry_ttl_seconds
+
+
+# ---------------------------------------------------------------------------
 # Factory - extension point for new providers
 # ---------------------------------------------------------------------------
 
@@ -230,6 +332,7 @@ class RegistryFactory:
 
     _PROVIDERS: dict[str, type[BaseModelRegistry]] = {
         "openrouter": OpenRouterRegistry,
+        "ollama": OllamaRegistry,
     }
 
     @classmethod

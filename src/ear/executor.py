@@ -116,3 +116,100 @@ class ExecutingFallbackPipeline(FallbackPipeline):
     async def _call_model(self, model_id: str, prompt: str) -> ExecutionResponse:
         """Invoke the real LLM and return the execution response."""
         return await self._executor.execute(model_id, prompt)
+
+
+_OLLAMA_CHAT_PATH = "/api/chat"
+
+
+class OllamaExecutor:
+    """Sends a prompt to a local Ollama model and returns a structured response.
+
+    Ollama exposes a chat endpoint at ``POST /api/chat``.  Streaming is
+    disabled (``stream=false``) so the full response arrives in one payload.
+    """
+
+    def __init__(self, config: EARConfig) -> None:
+        self._base_url = config.ear_ollama_base_url.rstrip("/")
+        self._timeout = config.ear_request_timeout_seconds
+
+    async def execute(self, model_id: str, prompt: str) -> ExecutionResponse:
+        """Send *prompt* to the Ollama model identified by *model_id*.
+
+        *model_id* must be in ``ollama/<name>`` format; the ``ollama/`` prefix
+        is stripped before the API call.
+
+        Raises:
+            ProviderError: HTTP 4xx/5xx from Ollama.
+            asyncio.TimeoutError: Request exceeded the configured timeout.
+        """
+        # Strip the "ollama/" routing prefix — Ollama expects the bare model name.
+        model_name = model_id.removeprefix("ollama/")
+        url = f"{self._base_url}{_OLLAMA_CHAT_PATH}"
+        payload: dict[str, Any] = {
+            "model": model_name,
+            "messages": [{"role": "user", "content": prompt}],
+            "stream": False,
+        }
+
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.post(url, json=payload)
+
+        if response.status_code >= 400:
+            raise ProviderError(
+                model_id=model_id,
+                status_code=response.status_code,
+                message=response.text[:200],
+            )
+
+        data = response.json()
+        content: str = data.get("message", {}).get("content", "")
+        prompt_tokens: int = int(data.get("prompt_eval_count", 0))
+        completion_tokens: int = int(data.get("eval_count", 0))
+        total_tokens: int = prompt_tokens + completion_tokens
+
+        logger.info(
+            "Ollama executed model '%s'; tokens: prompt=%d completion=%d",
+            model_id,
+            prompt_tokens,
+            completion_tokens,
+        )
+
+        return ExecutionResponse(
+            model=model_id,
+            content=content,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+        )
+
+
+class CompositeExecutor:
+    """Dispatches model execution to the correct backend by model ID prefix.
+
+    - ``ollama/*`` model IDs → :class:`OllamaExecutor` (local, private)
+    - All other model IDs   → :class:`LLMExecutor` (OpenRouter, cloud)
+
+    Inject a ``CompositeExecutor`` wherever an ``LLMExecutor`` is accepted to
+    transparently support both cloud and local providers in the same pipeline.
+    """
+
+    def __init__(self, openrouter: LLMExecutor, ollama: OllamaExecutor) -> None:
+        self._openrouter = openrouter
+        self._ollama = ollama
+
+    async def execute(self, model_id: str, prompt: str) -> ExecutionResponse:
+        """Dispatch *model_id* to the appropriate backend executor."""
+        if model_id.startswith("ollama/"):
+            return await self._ollama.execute(model_id, prompt)
+        return await self._openrouter.execute(model_id, prompt)
+
+
+class CompositeExecutingFallbackPipeline(FallbackPipeline):
+    """``FallbackPipeline`` backed by a ``CompositeExecutor`` for multi-provider routing."""
+
+    def __init__(self, executor: CompositeExecutor, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self._executor = executor
+
+    async def _call_model(self, model_id: str, prompt: str) -> ExecutionResponse:
+        return await self._executor.execute(model_id, prompt)

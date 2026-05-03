@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from ear.models import LLMSpec
-from ear.registry import BaseModelRegistry, RegistryClient, RegistryFactory
+from ear.registry import BaseModelRegistry, OllamaRegistry, RegistryClient, RegistryFactory
 
 
 class TestRegistryClientInit:
@@ -202,3 +202,188 @@ class TestRegistryFactory:
         supported = RegistryFactory.supported_providers()
 
         assert "openrouter" in supported
+
+    def test_supported_providers_includes_ollama(self) -> None:
+        supported = RegistryFactory.supported_providers()
+
+        assert "ollama" in supported
+
+    def test_create_ollama_provider(self, config) -> None:  # type: ignore[no-untyped-def]
+        registry = RegistryFactory.create(config, provider="ollama")
+
+        assert isinstance(registry, OllamaRegistry)
+
+
+# ── TestOllamaRegistry ────────────────────────────────────────────────────────
+
+class _FakeOllamaResponse:
+    def __init__(self, models: list[dict], status_code: int = 200) -> None:
+        self._models = models
+        self.status_code = status_code
+
+    def raise_for_status(self) -> None:
+        if self.status_code >= 400:
+            raise Exception(f"HTTP {self.status_code}")
+
+    def json(self) -> dict:
+        return {"models": self._models}
+
+
+def _fake_ollama_client(response: _FakeOllamaResponse):  # type: ignore[no-untyped-def]
+    """Return a context-manager-compatible async HTTP client that returns *response*."""
+    class _FakeClient:
+        def __init__(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
+            pass
+
+        async def __aenter__(self):  # type: ignore[no-untyped-def]
+            return self
+
+        async def __aexit__(self, *args) -> None:  # type: ignore[no-untyped-def]
+            pass
+
+        async def get(self, url: str) -> _FakeOllamaResponse:
+            return response
+
+    return _FakeClient
+
+
+class TestOllamaRegistry:
+    async def test_get_models_returns_trusted_specs(self, config, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+        """Parsed models should have ollama/ prefix and trusted=True."""
+        import ear.registry as registry_module
+
+        fake_resp = _FakeOllamaResponse(
+            [
+                {"name": "llama3"},
+                {"name": "mistral"},
+            ]
+        )
+        monkeypatch.setattr(registry_module.httpx, "AsyncClient", _fake_ollama_client(fake_resp))
+        monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test")
+        from ear.config import EARConfig
+
+        cfg = EARConfig()  # type: ignore[call-arg]
+        registry = OllamaRegistry(cfg)
+        models = await registry.get_models()
+
+        ids = [m.id for m in models]
+        assert "ollama/llama3" in ids
+        assert "ollama/mistral" in ids
+        for m in models:
+            assert m.trusted is True
+            assert m.pricing is not None
+            assert m.pricing.prompt == 0.0
+            assert m.pricing.completion == 0.0
+
+    async def test_get_models_skips_entry_with_missing_name(self, config, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+        import ear.registry as registry_module
+
+        fake_resp = _FakeOllamaResponse(
+            [
+                {"name": "llama3"},
+                {},  # missing name — should be skipped
+                {"name": ""},  # empty name — should be skipped
+            ]
+        )
+        monkeypatch.setattr(registry_module.httpx, "AsyncClient", _fake_ollama_client(fake_resp))
+        monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test")
+        from ear.config import EARConfig
+
+        cfg = EARConfig()  # type: ignore[call-arg]
+        registry = OllamaRegistry(cfg)
+        models = await registry.get_models()
+
+        assert len(models) == 1
+        assert models[0].id == "ollama/llama3"
+
+    async def test_get_models_defaults_context_length_when_missing(self, config, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+        import ear.registry as registry_module
+
+        fake_resp = _FakeOllamaResponse([{"name": "phi3"}])
+        monkeypatch.setattr(registry_module.httpx, "AsyncClient", _fake_ollama_client(fake_resp))
+        monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test")
+        from ear.config import EARConfig
+
+        cfg = EARConfig()  # type: ignore[call-arg]
+        registry = OllamaRegistry(cfg)
+        models = await registry.get_models()
+
+        assert models[0].context_length == 8_192  # _OLLAMA_DEFAULT_CONTEXT_LENGTH
+
+    async def test_get_models_defaults_context_length_when_zero(self, config, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+        import ear.registry as registry_module
+
+        fake_resp = _FakeOllamaResponse([{"name": "phi3", "context_length": 0}])
+        monkeypatch.setattr(registry_module.httpx, "AsyncClient", _fake_ollama_client(fake_resp))
+        monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test")
+        from ear.config import EARConfig
+
+        cfg = EARConfig()  # type: ignore[call-arg]
+        registry = OllamaRegistry(cfg)
+        models = await registry.get_models()
+
+        assert models[0].context_length == 8_192
+
+    async def test_get_models_uses_valid_cache(self, config, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+        """Second call within TTL must not hit the network."""
+        import ear.registry as registry_module
+
+        fake_resp = _FakeOllamaResponse([{"name": "llama3"}])
+        mock_client_cls = _fake_ollama_client(fake_resp)
+        monkeypatch.setattr(registry_module.httpx, "AsyncClient", mock_client_cls)
+        monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test")
+        from ear.config import EARConfig
+
+        cfg = EARConfig()  # type: ignore[call-arg]
+        registry = OllamaRegistry(cfg)
+        await registry.get_models()  # first call — populates cache
+
+        # Patch _fetch_models to detect any second network call
+        fetch_mock = AsyncMock(return_value=[])
+        registry._fetch_models = fetch_mock  # type: ignore[method-assign]
+
+        second = await registry.get_models()
+
+        fetch_mock.assert_not_called()
+        assert len(second) == 1
+
+    async def test_get_models_serves_stale_cache_on_refresh_failure(self, config, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+        import ear.registry as registry_module
+
+        fake_resp = _FakeOllamaResponse([{"name": "llama3"}])
+        monkeypatch.setattr(registry_module.httpx, "AsyncClient", _fake_ollama_client(fake_resp))
+        monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test")
+        from ear.config import EARConfig
+
+        cfg = EARConfig()  # type: ignore[call-arg]
+        registry = OllamaRegistry(cfg)
+        await registry.get_models()  # fill cache
+
+        # Force cache expiry
+        registry._fetched_at = time.monotonic() - float(cfg.ear_registry_ttl_seconds) - 1.0
+        # Make refresh fail
+        registry._fetch_models = AsyncMock(side_effect=RuntimeError("ollama offline"))  # type: ignore[method-assign]
+
+        result = await registry.get_models()
+
+        assert len(result) == 1
+        assert result[0].id == "ollama/llama3"
+
+    async def test_get_models_raises_when_no_cache_and_refresh_fails(self, config, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+        monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test")
+        from ear.config import EARConfig
+
+        cfg = EARConfig()  # type: ignore[call-arg]
+        registry = OllamaRegistry(cfg)
+        registry._fetch_models = AsyncMock(side_effect=RuntimeError("ollama offline"))  # type: ignore[method-assign]
+
+        with pytest.raises(RuntimeError, match="ollama offline"):
+            await registry.get_models()
+
+    def test_provider_name_is_ollama(self, config) -> None:  # type: ignore[no-untyped-def]
+        from ear.config import EARConfig
+
+        cfg = EARConfig()  # type: ignore[call-arg]
+        registry = OllamaRegistry(cfg)
+
+        assert registry.provider_name == "ollama"

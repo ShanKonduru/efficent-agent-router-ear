@@ -8,11 +8,16 @@ from ear.models import GuardrailResult
 
 logger = logging.getLogger(__name__)
 
+# Provider prefix for the local Ollama private provider.
+OLLAMA_PROVIDER: str = "ollama"
+
 # Providers considered vetted for PII-containing prompts.
+# Ollama runs locally and never exfiltrates data, making it the most trusted option.
 PII_VETTED_PROVIDERS: frozenset[str] = frozenset(
     {
         "anthropic",
         "openai",
+        OLLAMA_PROVIDER,
     }
 )
 

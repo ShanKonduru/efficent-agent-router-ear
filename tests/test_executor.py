@@ -8,7 +8,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-from ear.executor import ExecutingFallbackPipeline, LLMExecutor, _compute_cost
+from ear.executor import (
+    CompositeExecutingFallbackPipeline,
+    CompositeExecutor,
+    ExecutingFallbackPipeline,
+    LLMExecutor,
+    OllamaExecutor,
+    _compute_cost,
+)
 from ear.fallback import AllCandidatesExhausted, FallbackPipeline, ProviderError
 from ear.models import (
     ExecutionResponse,
@@ -325,3 +332,285 @@ class TestExecutingFallbackPipeline:
             await pipeline.execute(
                 _decision("openai/gpt-4o-mini", ["anthropic/claude-3.5-sonnet"]), "ping"
             )
+
+
+# ── Helpers for Ollama tests ─────────────────────────────────────────────────
+
+def _make_ollama_config(
+    base_url: str = "http://localhost:11434",
+    timeout: float = 30.0,
+    max_retries: int = 3,
+) -> Any:
+    cfg = MagicMock()
+    cfg.ear_ollama_base_url = base_url
+    cfg.ear_request_timeout_seconds = timeout
+    cfg.ear_max_retries = max_retries
+    return cfg
+
+
+def _ollama_success_payload(
+    content: str = "hello from local",
+    prompt_eval_count: int = 8,
+    eval_count: int = 12,
+) -> dict[str, Any]:
+    return {
+        "message": {"role": "assistant", "content": content},
+        "prompt_eval_count": prompt_eval_count,
+        "eval_count": eval_count,
+    }
+
+
+# ── TestOllamaExecutor ───────────────────────────────────────────────────────
+
+class TestOllamaExecutor:
+    @pytest.fixture()
+    def executor(self) -> OllamaExecutor:
+        return OllamaExecutor(_make_ollama_config())
+
+    async def test_execute_success(self, executor: OllamaExecutor) -> None:
+        payload = _ollama_success_payload(content="deep thought", prompt_eval_count=5, eval_count=7)
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = payload
+
+        with patch("httpx.AsyncClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.post = AsyncMock(return_value=mock_response)
+            mock_client_cls.return_value = mock_client
+
+            result = await executor.execute("ollama/llama3", "what is 6 * 7?")
+
+        assert isinstance(result, ExecutionResponse)
+        assert result.model == "ollama/llama3"
+        assert result.content == "deep thought"
+        assert result.prompt_tokens == 5
+        assert result.completion_tokens == 7
+        assert result.total_tokens == 12
+
+    async def test_execute_strips_ollama_prefix_in_api_call(self) -> None:
+        """The bare model name (no prefix) must be sent to Ollama /api/chat."""
+        payload = _ollama_success_payload()
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = payload
+
+        captured_payloads: list[dict[str, Any]] = []
+
+        async def fake_post(url: str, **kwargs: Any) -> Any:
+            captured_payloads.append(kwargs.get("json", {}))
+            return mock_response
+
+        with patch("httpx.AsyncClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.post = fake_post
+            mock_client_cls.return_value = mock_client
+
+            await OllamaExecutor(_make_ollama_config()).execute("ollama/llama3", "hello")
+
+        assert captured_payloads[0]["model"] == "llama3"
+        assert captured_payloads[0]["stream"] is False
+
+    async def test_execute_raises_provider_error_on_4xx(self, executor: OllamaExecutor) -> None:
+        mock_response = MagicMock()
+        mock_response.status_code = 404
+        mock_response.text = "model not found"
+
+        with patch("httpx.AsyncClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.post = AsyncMock(return_value=mock_response)
+            mock_client_cls.return_value = mock_client
+
+            with pytest.raises(ProviderError) as exc_info:
+                await executor.execute("ollama/llama3", "hello")
+
+        assert exc_info.value.model_id == "ollama/llama3"
+        assert exc_info.value.status_code == 404
+
+    async def test_execute_raises_provider_error_on_5xx(self, executor: OllamaExecutor) -> None:
+        mock_response = MagicMock()
+        mock_response.status_code = 503
+        mock_response.text = "service unavailable"
+
+        with patch("httpx.AsyncClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.post = AsyncMock(return_value=mock_response)
+            mock_client_cls.return_value = mock_client
+
+            with pytest.raises(ProviderError) as exc_info:
+                await executor.execute("ollama/mistral", "hi")
+
+        assert exc_info.value.status_code == 503
+
+    async def test_execute_missing_token_counts_default_to_zero(self, executor: OllamaExecutor) -> None:
+        payload = {"message": {"role": "assistant", "content": "ok"}}
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = payload
+
+        with patch("httpx.AsyncClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.post = AsyncMock(return_value=mock_response)
+            mock_client_cls.return_value = mock_client
+
+            result = await executor.execute("ollama/llama3", "hello")
+
+        assert result.prompt_tokens == 0
+        assert result.completion_tokens == 0
+        assert result.total_tokens == 0
+
+    async def test_execute_trailing_slash_stripped_from_base_url(self) -> None:
+        cfg = _make_ollama_config(base_url="http://localhost:11434/")
+        executor = OllamaExecutor(cfg)
+
+        payload = _ollama_success_payload()
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = payload
+
+        captured_urls: list[str] = []
+
+        async def fake_post(url: str, **kwargs: Any) -> Any:
+            captured_urls.append(url)
+            return mock_response
+
+        with patch("httpx.AsyncClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.post = fake_post
+            mock_client_cls.return_value = mock_client
+
+            await executor.execute("ollama/llama3", "hello")
+
+        assert captured_urls[0] == "http://localhost:11434/api/chat"
+
+
+# ── TestCompositeExecutor ────────────────────────────────────────────────────
+
+class TestCompositeExecutor:
+    def _make_composite(
+        self,
+        openrouter_side_effect: Any = None,
+        openrouter_return: ExecutionResponse | None = None,
+        ollama_side_effect: Any = None,
+        ollama_return: ExecutionResponse | None = None,
+    ) -> CompositeExecutor:
+        mock_openrouter = AsyncMock(spec=LLMExecutor)
+        if openrouter_side_effect is not None:
+            mock_openrouter.execute = AsyncMock(side_effect=openrouter_side_effect)
+        elif openrouter_return is not None:
+            mock_openrouter.execute = AsyncMock(return_value=openrouter_return)
+
+        mock_ollama = AsyncMock(spec=OllamaExecutor)
+        if ollama_side_effect is not None:
+            mock_ollama.execute = AsyncMock(side_effect=ollama_side_effect)
+        elif ollama_return is not None:
+            mock_ollama.execute = AsyncMock(return_value=ollama_return)
+
+        return CompositeExecutor(openrouter=mock_openrouter, ollama=mock_ollama)  # type: ignore[arg-type]
+
+    async def test_ollama_prefix_routes_to_ollama_executor(self) -> None:
+        ollama_resp = _response("ollama/llama3", "local answer")
+        composite = self._make_composite(ollama_return=ollama_resp)
+
+        result = await composite.execute("ollama/llama3", "hello")
+
+        assert result.content == "local answer"
+        composite._openrouter.execute.assert_not_called()  # type: ignore[attr-defined]
+        composite._ollama.execute.assert_awaited_once_with("ollama/llama3", "hello")  # type: ignore[attr-defined]
+
+    async def test_non_ollama_prefix_routes_to_openrouter_executor(self) -> None:
+        openrouter_resp = _response("openai/gpt-4o-mini", "cloud answer")
+        composite = self._make_composite(openrouter_return=openrouter_resp)
+
+        result = await composite.execute("openai/gpt-4o-mini", "hello")
+
+        assert result.content == "cloud answer"
+        composite._ollama.execute.assert_not_called()  # type: ignore[attr-defined]
+        composite._openrouter.execute.assert_awaited_once_with("openai/gpt-4o-mini", "hello")  # type: ignore[attr-defined]
+
+    async def test_anthropic_routes_to_openrouter(self) -> None:
+        openrouter_resp = _response("anthropic/claude-3-haiku", "haiku answer")
+        composite = self._make_composite(openrouter_return=openrouter_resp)
+
+        result = await composite.execute("anthropic/claude-3-haiku", "ping")
+
+        assert result.content == "haiku answer"
+
+    async def test_ollama_provider_error_propagates(self) -> None:
+        composite = self._make_composite(
+            ollama_side_effect=ProviderError("ollama/llama3", 503, "overloaded")
+        )
+
+        with pytest.raises(ProviderError) as exc_info:
+            await composite.execute("ollama/llama3", "hello")
+
+        assert exc_info.value.status_code == 503
+
+
+# ── TestCompositeExecutingFallbackPipeline ───────────────────────────────────
+
+class TestCompositeExecutingFallbackPipeline:
+    async def test_execute_routes_ollama_model_via_composite(self) -> None:
+        ollama_resp = _response("ollama/llama3", "private answer")
+        mock_composite = MagicMock(spec=CompositeExecutor)
+        mock_composite.execute = AsyncMock(return_value=ollama_resp)
+
+        pipeline = CompositeExecutingFallbackPipeline(
+            executor=mock_composite,
+            max_retries=0,
+            base_backoff_seconds=0.0,
+            max_backoff_seconds=0.0,
+        )
+
+        result = await pipeline.execute(_decision("ollama/llama3"), "hello")
+
+        assert result.succeeded
+        assert result.model_used == "ollama/llama3"
+        assert result.response.content == "private answer"
+
+    async def test_execute_cascades_to_fallback_on_provider_error(self) -> None:
+        ollama_err = ProviderError("ollama/llama3", 500, "crash")
+        fallback_resp = _response("openai/gpt-4o-mini", "cloud fallback")
+        responses: dict[str, list[Any]] = {
+            "ollama/llama3": [ollama_err],
+            "openai/gpt-4o-mini": [fallback_resp],
+        }
+
+        call_counts: dict[str, int] = {}
+
+        async def dispatch(model_id: str, prompt: str) -> ExecutionResponse:
+            queue = responses.get(model_id, [])
+            if not queue:
+                raise ProviderError(model_id, 500, "empty")
+            item = queue.pop(0)
+            if isinstance(item, Exception):
+                raise item
+            return item  # type: ignore[return-value]
+
+        mock_composite = MagicMock(spec=CompositeExecutor)
+        mock_composite.execute = dispatch  # type: ignore[method-assign]
+
+        pipeline = CompositeExecutingFallbackPipeline(
+            executor=mock_composite,
+            max_retries=0,
+            base_backoff_seconds=0.0,
+            max_backoff_seconds=0.0,
+        )
+
+        result = await pipeline.execute(
+            _decision("ollama/llama3", ["openai/gpt-4o-mini"]), "hello"
+        )
+
+        assert result.succeeded
+        assert result.model_used == "openai/gpt-4o-mini"
