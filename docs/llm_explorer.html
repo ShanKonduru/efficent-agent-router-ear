@@ -945,6 +945,10 @@
       `).join("");
     }
 
+    function formatEarModel(earModel) {
+      return earModel === "blocked-by-guardrails" ? "Blocked by Guardrails" : earModel;
+    }
+
     function currentScenario() {
       const scenarioId = el.scenarioSelect.value || (storyScenarios[0] && storyScenarios[0].id);
       return storyScenarios.find((s) => s.id === scenarioId) || null;
@@ -961,9 +965,12 @@
       }
 
       el.storyScenarioTitle.textContent = scenario.title;
-      el.storyScenarioDetail.textContent = `Comparing ${storyCompare.baseline_model} against ${storyCompare.ear_model} for this workflow.`;
+      const earModelLabel = formatEarModel(storyCompare.ear_model);
+      el.storyScenarioDetail.textContent = storyCompare.ear_model === "blocked-by-guardrails"
+        ? `EAR guardrails blocked this request — no model was invoked for "${scenario.title}".`
+        : `Comparing ${storyCompare.baseline_model} against ${earModelLabel} for this workflow.`;
       el.storyBaselineModel.textContent = storyCompare.baseline_model;
-      el.storyEarModel.textContent = storyCompare.ear_model;
+      el.storyEarModel.textContent = earModelLabel;
     }
 
     function renderStoryNote() {
@@ -981,7 +988,11 @@
         return;
       }
 
-      el.execNote.textContent = `Scenario takeaway: EAR changes this flow from ${storyCompare.baseline_model} to ${storyCompare.ear_model}, cutting cost by ${storyCompare.cost_delta_pct.toFixed(1)}%, reducing latency by ${storyCompare.latency_delta_pct.toFixed(1)}%, improving reliability by ${storyCompare.reliability_gain_pct.toFixed(1)}%, and blocking ${storyCompare.safety_incidents_blocked} safety incidents.`;
+      if (storyCompare.ear_model === "blocked-by-guardrails") {
+        el.execNote.textContent = `Scenario takeaway: EAR guardrails intercepted this request before reaching any model, blocking ${storyCompare.safety_incidents_blocked} safety incident(s), eliminating cost entirely, and responding in ${storyCompare.ear_latency_ms.toFixed(0)} ms.`;
+      } else {
+        el.execNote.textContent = `Scenario takeaway: EAR changes this flow from ${storyCompare.baseline_model} to ${formatEarModel(storyCompare.ear_model)}, cutting cost by ${storyCompare.cost_delta_pct.toFixed(1)}%, reducing latency by ${storyCompare.latency_delta_pct.toFixed(1)}%, improving reliability by ${storyCompare.reliability_gain_pct.toFixed(1)}%, and blocking ${storyCompare.safety_incidents_blocked} safety incidents.`;
+      }
     }
 
     function renderStoryCards() {
