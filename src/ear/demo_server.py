@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import parse_qs, urlparse
 
+import httpx
+
 from pydantic import BaseModel, Field, field_validator
 
 from ear.config import get_config
@@ -87,6 +89,14 @@ class LiveBackendService:
             config = get_config()
             registry = RegistryFactory.create(config)
             models = await registry.get_models()
+        except httpx.NetworkError as exc:
+            return {
+                "error": "live_mode_unavailable",
+                "reason": (
+                    f"Cannot reach the OpenRouter API ({type(exc).__name__}). "
+                    "Check your network connection and OPENROUTER_API_KEY, then retry."
+                ),
+            }
         except Exception as exc:
             return {
                 "error": "live_mode_unavailable",

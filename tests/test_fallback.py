@@ -7,6 +7,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 import pytest
+import httpx
 
 from ear.fallback import (
     AllCandidatesExhausted,
@@ -56,6 +57,18 @@ class TestFailureClassifier:
     def test_is_transient_false_for_other_exception_types(self) -> None:
         classifier = FailureClassifier()
         assert not classifier.is_transient(ValueError("malformed json"))
+
+    def test_is_transient_true_for_httpx_network_error(self) -> None:
+        classifier = FailureClassifier()
+        assert classifier.is_transient(httpx.ConnectError("All connection attempts failed"))
+        assert classifier.is_transient(httpx.ReadError("connection reset"))
+        assert classifier.is_transient(httpx.WriteError("broken pipe"))
+
+    def test_is_transient_true_for_httpx_timeout_exception(self) -> None:
+        classifier = FailureClassifier()
+        assert classifier.is_transient(httpx.ConnectTimeout("timed out"))
+        assert classifier.is_transient(httpx.ReadTimeout("timed out"))
+        assert classifier.is_transient(httpx.PoolTimeout("timed out"))
 
 
 class _ScriptedPipeline(FallbackPipeline):

@@ -6,6 +6,8 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable
 
+import httpx
+
 from ear.models import RoutingDecision
 
 logger = logging.getLogger(__name__)
@@ -57,10 +59,19 @@ class FailureClassifier:
     """Determines whether a provider error is transient or fatal."""
 
     def is_transient(self, error: Exception) -> bool:
-        """Return True if the error warrants a retry or cascade."""
+        """Return True if the error warrants a retry or cascade.
+
+        Network-level errors (ConnectError, ReadError, WriteError, etc.) are
+        treated as transient so the fallback pipeline cascades to the next
+        candidate instead of surfacing a raw ``httpx`` exception to the caller.
+        """
         if isinstance(error, ProviderError):
             return error.status_code in TRANSIENT_STATUS_CODES
-        return isinstance(error, (asyncio.TimeoutError, TimeoutError))
+        if isinstance(error, (asyncio.TimeoutError, TimeoutError)):
+            return True
+        # httpx network errors (ConnectError, ReadError, WriteError, …) and
+        # httpx-level timeouts (ConnectTimeout, ReadTimeout, etc.) are transient.
+        return isinstance(error, (httpx.NetworkError, httpx.TimeoutException))
 
 
 class FallbackPipeline:

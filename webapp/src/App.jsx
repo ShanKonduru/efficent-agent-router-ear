@@ -194,7 +194,23 @@ export default function App() {
       setProgress(70);
       const responsePayload = await response.json();
       if (!response.ok || responsePayload.error) {
-        throw new Error(responsePayload.reason || responsePayload.error || "Execution failed.");
+        const ERROR_LABELS = {
+          live_mode_unavailable:
+            "EAR could not reach the model registry. " +
+            (responsePayload.reason || "Check your network connection and OPENROUTER_API_KEY."),
+          all_candidates_exhausted:
+            "Every model in the fallback chain failed. The provider may be overloaded — please retry.",
+          guardrails_blocked:
+            "Request blocked by safety guardrails: " + (responsePayload.reason || ""),
+          no_models_available:
+            "No models are currently available from the registry. Retry in a moment.",
+        };
+        throw new Error(
+          ERROR_LABELS[responsePayload.error] ||
+            responsePayload.reason ||
+            responsePayload.error ||
+            "Execution failed."
+        );
       }
       setResult(responsePayload);
       setProgress(92);

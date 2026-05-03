@@ -184,6 +184,30 @@ class TestLiveBackendService:
         assert payload["error"] == "no_models_available"
 
     @pytest.mark.asyncio
+    async def test_route_execute_live_mode_unavailable_network_error(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import httpx as _httpx
+
+        service = demo_server_module.LiveBackendService()
+
+        class _NetworkErrorRegistry:
+            async def get_models(self) -> list:
+                raise _httpx.ConnectError("All connection attempts failed")
+
+        monkeypatch.setattr(demo_server_module, "get_config", lambda: object())
+        monkeypatch.setattr(
+            demo_server_module.RegistryFactory, "create", lambda _cfg: _NetworkErrorRegistry()
+        )
+
+        payload = await service.route_execute_endpoint(
+            demo_server_module.LiveRouteRequest(prompt="hello")
+        )
+        assert payload["error"] == "live_mode_unavailable"
+        assert "OpenRouter API" in payload["reason"]
+        assert "ConnectError" in payload["reason"]
+
+    @pytest.mark.asyncio
     async def test_route_execute_guardrails_blocked(self, monkeypatch: pytest.MonkeyPatch) -> None:
         service = demo_server_module.LiveBackendService()
         models = [
