@@ -31,7 +31,12 @@ Track delivery using the status column for every item.
 | E9 | CI/CD and Security Automation | P2 | 4 | M4 | `[x]` |
 | E10 | Execution Plane and Adaptive Routing Intelligence | P1 | 13 | M5 | `[x]` |
 | E11 | Leadership Demo Frontend and GTM Showcase | P2 | 8 | M6 | `[x]` |
-| | **Total** | | **89** | | |
+| E12 | Release, Distribution, and Branch Governance | P1 | 5 | M7 | `[ ]` |
+| E13 | Live Demo Backend ↔ Frontend Integration | P2 | 8 | M7 | `[ ]` |
+| E14 | Live Execution Canary Validation | P1 | 5 | M7 | `[ ]` |
+| E15 | Benchmark Harness Execution and Results | P2 | 5 | M7 | `[ ]` |
+| E16 | Architecture Decision Records Backfill | P3 | 4 | M7 | `[ ]` |
+| | **Total** | | **116** | | |
 
 ---
 
@@ -45,6 +50,7 @@ Track delivery using the status column for every item.
 | M4 — MCP and Automation | Week 5 | E8, E9 | MCP tool live; CI pipeline gates passing | `[x]` |
 | M5 — Execution and Intelligence | Week 6–7 | E10 | Real model execution active; semantic safety and adaptive intent routing validated | `[x]` |
 | M6 — Frontend and Leadership Demo | Week 8 | E11 | Web demo shows measurable business value and investor-ready narratives | `[x]` |
+| M7 — Post-Launch Hardening | Week 9–10 | E12, E13, E14, E15, E16 | Release verified on PyPI; live demo backend wired; canary executed; benchmarks documented; ADRs filed | `[ ]` |
 
 ---
 
@@ -357,21 +363,155 @@ Track delivery using the status column for every item.
 
 ---
 
+## E12 — Release, Distribution, and Branch Governance
+
+> Verify the v0.10.3 release is correctly published on PyPI and that the `master`/`main` branch synchronization policy is enforced.
+
+**Priority:** P1 · **Total Points:** 5
+
+### Feature F12 — PyPI Release Verification and Branch Sync
+
+| ID | User Story | Priority | Points | Status |
+| --- | --- | --- | --- | --- |
+| US-12 | As a maintainer, I want v0.10.3 verified on PyPI and branches synchronized so the release is officially complete and installable by end users. | P1 | 5 | `[ ]` |
+
+**Acceptance Criteria**
+- Given the release tag `0.10.3` is pushed, when the publish workflow runs, then wheel and sdist artifacts appear on the PyPI project page.
+- Given the published package, when `pip install efficient-agent-router-ear==0.10.3` runs, then the import smoke test passes without errors.
+- Given `master` contains release commits, when the sync step runs, then `main` is an exact mirror of `master` with no divergence.
+- Given security workflows run, when sec-report-kit rendering completes, then HTML reports are attached as workflow artifacts.
+
+| Task ID | Task | Sub-tasks | Priority | Points | Status |
+| --- | --- | --- | --- | --- | --- |
+| T11.1 | Confirm PyPI wheel and sdist artifacts | Verify both `.whl` and `.tar.gz` are present on PyPI for v0.10.3 | P1 | 1 | `[ ]` |
+| T11.2 | Run install and import smoke test | `pip install efficient-agent-router-ear==0.10.3` then `python -c "import ear; print(ear.__version__)"` | P1 | 1 | `[ ]` |
+| T11.3 | Mirror `master` → `main` | Follow release playbook sync step; verify no divergent commits remain | P1 | 1 | `[ ]` |
+| T11.4 | Attach security HTML reports as workflow artifacts | Confirm `pip_audit_latest.html` and `trivy_latest.html` appear in Actions run artifacts | P2 | 1 | `[ ]` |
+| T11.5 | Update release-playbook.md with any gaps discovered | Record any manual steps not yet automated for the next release cycle | P2 | 1 | `[ ]` |
+
+---
+
+## E13 — Live Demo Backend ↔ Frontend Integration
+
+> Wire the static scenario data in `llm_explorer.html` to the live `DemoBackendService` endpoints so demo content is served dynamically and stays consistent with backend logic.
+
+**Priority:** P2 · **Total Points:** 8
+
+### Feature F13 — Demo API Server and Frontend Fetch Integration
+
+| ID | User Story | Priority | Points | Status |
+| --- | --- | --- | --- | --- |
+| US-13 | As a leadership stakeholder, I want the demo UI to call live backend endpoints so scenario data is authoritative and the frontend never goes stale. | P2 | 8 | `[ ]` |
+
+**Acceptance Criteria**
+- Given `demo_server.py` is running, when `llm_explorer.html` loads, then scenarios are fetched from `/api/scenarios` instead of the embedded static array.
+- Given `/api/compare/{id}` is called, when a scenario is selected in the UI, then the compare card updates with live data.
+- Given the backend is unreachable, when the UI loads, then an error banner is shown and the UI degrades gracefully.
+- Given existing unit tests, when the API layer is added, then coverage remains at 100%.
+
+| Task ID | Task | Sub-tasks | Priority | Points | Status |
+| --- | --- | --- | --- | --- | --- |
+| T12.1 | Add FastAPI/Starlette server wrapping `DemoBackendService` | Expose `/api/scenarios`, `/api/compare/{id}`, `/api/summary`, `/api/safety-feed` routes; serve `llm_explorer.html` as static | P2 | 2 | `[ ]` |
+| T12.2 | Replace static scenario array in `llm_explorer.html` with `fetch()` calls | Replace inline JS data with `fetch("/api/scenarios")` and downstream compare/summary calls; handle loading states | P2 | 3 | `[ ]` |
+| T12.3 | Add error banner and graceful degradation | Display user-facing error when any API call fails; keep UI functional for already-loaded data | P2 | 1 | `[ ]` |
+| T12.4 | Add smoke tests for API endpoints | Test each route with mocked `DemoBackendService`; assert response schema and status codes | P2 | 2 | `[ ]` |
+
+---
+
+## E14 — Live Execution Canary Validation
+
+> Validate the full EAR execution pipeline against a real OpenRouter endpoint to confirm behavior outside of mocked unit tests.
+
+**Priority:** P1 · **Total Points:** 5
+
+### Feature F14 — Real-Provider Canary Execution
+
+| ID | User Story | Priority | Points | Status |
+| --- | --- | --- | --- | --- |
+| US-14 | As a platform owner, I want EAR validated against real providers so I have evidence the execution pipeline works end-to-end beyond mocks. | P1 | 5 | `[ ]` |
+
+**Acceptance Criteria**
+- Given `OPENROUTER_API_KEY` is set, when the canary script runs, then at least two provider calls succeed and return structured responses.
+- Given a successful canary run, when telemetry is captured, then real latency, token usage, and cost fields are non-zero.
+- Given a canary failure, when the run exits, then the error reason and fallback trace are printed clearly.
+
+| Task ID | Task | Sub-tasks | Priority | Points | Status |
+| --- | --- | --- | --- | --- | --- |
+| T13.1 | Create canary execution script | Configurable model ID, prompt, and budget priority; print route decision and execution result | P1 | 2 | `[ ]` |
+| T13.2 | Run canary against two real providers and assert response structure | Execute with `openai/gpt-4o-mini` and one Gemini model; assert text, latency, token usage present | P1 | 2 | `[ ]` |
+| T13.3 | Document canary pass criteria in `release-playbook.md` | Add canary step to Phase 1 preflight; specify required fields and acceptable latency ceiling | P2 | 1 | `[ ]` |
+
+---
+
+## E15 — Benchmark Harness Execution and Results
+
+> Run the evaluation harness built in T9.9 and publish documented precision/recall results so routing quality claims are evidence-based.
+
+**Priority:** P2 · **Total Points:** 5
+
+### Feature F15 — Intent and Injection Benchmark Results
+
+| ID | User Story | Priority | Points | Status |
+| --- | --- | --- | --- | --- |
+| US-15 | As a platform owner, I want the evaluation harness to produce documented benchmark results so routing quality claims are backed by evidence rather than assertions. | P2 | 5 | `[ ]` |
+
+**Acceptance Criteria**
+- Given the evaluation harness runs with the current heuristic baseline and semantic classifier, when results are collected, then precision, recall, and F1 are recorded per intent class and injection category.
+- Given benchmark results are computed, when they are reviewed, then the semantic classifier meets or exceeds heuristic baseline on all safety-critical categories.
+- Given the results document exists, when it is referenced from the README, then stakeholders can verify the quality claims independently.
+
+| Task ID | Task | Sub-tasks | Priority | Points | Status |
+| --- | --- | --- | --- | --- | --- |
+| T14.1 | Run evaluation harness on full scenario set | Execute `evaluation.py` harness with heuristic and semantic classifiers; capture raw outputs | P2 | 2 | `[ ]` |
+| T14.2 | Compute and record precision/recall/F1 per category | Aggregate per intent class and injection risk tier; record in `docs/benchmark_results.md` | P2 | 2 | `[ ]` |
+| T14.3 | Reference benchmark results from README | Add a Benchmarks section in README pointing to `docs/benchmark_results.md` | P3 | 1 | `[ ]` |
+
+---
+
+## E16 — Architecture Decision Records Backfill
+
+> Document the key architectural decisions made during delivery so the rationale is clear to future contributors and maintainers.
+
+**Priority:** P3 · **Total Points:** 4
+
+### Feature F16 — ADR Documentation
+
+| ID | User Story | Priority | Points | Status |
+| --- | --- | --- | --- | --- |
+| US-16 | As a contributor, I want key architecture decisions recorded in ADRs so the design intent is preserved and future changes are informed by past trade-off analysis. | P3 | 4 | `[ ]` |
+
+**Acceptance Criteria**
+- Given an ADR file exists for each major decision, when a new contributor reads it, then they understand the context, options considered, and chosen approach.
+- Given ADRs are numbered sequentially, when a new ADR is added, then it follows the existing `0001-` naming convention in `docs/adr/`.
+
+| Task ID | Task | Sub-tasks | Priority | Points | Status |
+| --- | --- | --- | --- | --- | --- |
+| T15.1 | Write ADR for LiteLLM as execution adapter | Cover alternatives (raw httpx, provider SDKs), trade-offs, and decision rationale | P3 | 1 | `[ ]` |
+| T15.2 | Write ADR for guardrail scoring and semantic injection detection | Cover keyword vs embedding vs flash-model approaches and policy threshold design | P3 | 1 | `[ ]` |
+| T15.3 | Write ADR for MCP transport design and tool exposure | Cover stdio vs HTTP transport, tool schema versioning, and separation-of-concerns rationale | P3 | 1 | `[ ]` |
+| T15.4 | Write ADR for demo backend deterministic replay approach | Cover static vs dynamic data, DemoScenario model, and `blocked-by-guardrails` sentinel choice | P3 | 1 | `[ ]` |
+
+---
+
 ## WBS Summary
 
 | Metric | Value |
 | --- | --- |
-| Total Epics | 11 |
-| Total Features | 12 |
-| Total User Stories | 12 |
-| Total Tasks | 48 |
-| Total Story Points | 89 |
-| Estimated Timeline | 6–8 weeks |
+| Total Epics | 16 |
+| Total Features | 17 |
+| Total User Stories | 17 |
+| Total Tasks | 67 |
+| Total Story Points | 116 |
+| Estimated Timeline | 9–10 weeks |
 | Weekly Capacity Assumption | 10–14 points/week |
 
 ## Priority Order for Development
 
 From the current project state, the remaining execution order is:
 
-1. Keep branch synchronization policy (`master` and `main`) enforced for every release change
-2. Continue dependency and security posture monitoring in scheduled workflows
+1. **E12 (P1):** Verify v0.10.3 PyPI release artifacts, run install smoke test, and mirror `master` → `main`
+2. **E14 (P1):** Run live execution canary against real OpenRouter providers to validate end-to-end pipeline
+3. **E13 (P2):** Wire `DemoBackendService` endpoints to `llm_explorer.html`; replace static in-page data with `fetch()` calls
+4. **E15 (P2):** Execute benchmark harness (T9.9); publish precision/recall/F1 results to `docs/benchmark_results.md`
+5. **E16 (P3):** Backfill ADRs for LiteLLM, guardrails, MCP transport, and demo replay design
+6. Continue dependency and security posture monitoring via scheduled workflows

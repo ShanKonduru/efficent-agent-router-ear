@@ -17,12 +17,22 @@
 8. CI/CD and Security Automation (`[x]`)
 9. Execution Plane and Adaptive Routing Intelligence (`[x]`)
 10. Leadership Demo Frontend and GTM Showcase (`[x]`)
+11. Release, Distribution, and Branch Governance (`[ ]`)
+12. Live Demo Backend ↔ Frontend Integration (`[ ]`)
+13. Live Execution Canary Validation (`[ ]`)
+14. Benchmark Harness Execution and Results (`[ ]`)
+15. Architecture Decision Records Backfill (`[ ]`)
 
 ## Recommended Execution Order (Current State)
-1. E10 F9: implement true route-and-execute runtime (LiteLLM + fallback + real telemetry)
-2. E10 F10: add semantic intent/injection intelligence and benchmark harness
-3. E11 F11: build leadership/investor frontend demo with baseline-vs-EAR value views
-4. Continue release governance and branch synchronization
+1. E10 F9: implement true route-and-execute runtime (LiteLLM + fallback + real telemetry) `[x]`
+2. E10 F10: add semantic intent/injection intelligence and benchmark harness `[x]`
+3. E11 F11: build leadership/investor frontend demo with baseline-vs-EAR value views `[x]`
+4. E12 F12: verify v0.10.3 PyPI release artifacts and synchronize `master` → `main` `[ ]`
+5. E14 F14: run live execution canary against real OpenRouter providers `[ ]`
+6. E13 F13: wire `DemoBackendService` API endpoints to `llm_explorer.html` frontend `[ ]`
+7. E15 F15: execute benchmark harness and publish precision/recall results `[ ]`
+8. E16 F16: backfill ADRs for LiteLLM, guardrails, MCP transport, and demo replay `[ ]`
+9. Continue release governance, branch synchronization, and security posture monitoring
 
 ## User Stories, Tasks, and Estimates
 
@@ -155,6 +165,66 @@
   - T10.3 Implement KPI dashboards and storytelling panels (2 pts) `[x]`
   - T10.4 Add one-click demo script and smoke tests (1 pt) `[x]`
 
+### F12. Release, Distribution, and Branch Governance
+- Story US-12 (5 pts) `[ ]`: As a maintainer, I want v0.10.3 verified on PyPI and branches synchronized so the release is officially complete.
+- Acceptance highlights:
+  - Wheel and sdist artifacts present on PyPI for v0.10.3.
+  - Install smoke test passes from PyPI.
+  - `master` mirrored to `main` with no divergence.
+  - Security HTML reports attached as workflow artifacts.
+- Tasks:
+  - T11.1 Confirm PyPI wheel and sdist artifacts (1 pt) `[ ]`
+  - T11.2 Run install and import smoke test from PyPI (1 pt) `[ ]`
+  - T11.3 Mirror `master` → `main` per release playbook (1 pt) `[ ]`
+  - T11.4 Attach security HTML reports as workflow artifacts (1 pt) `[ ]`
+  - T11.5 Update release-playbook.md with any gaps discovered (1 pt) `[ ]`
+
+### F13. Live Demo Backend ↔ Frontend Integration
+- Story US-13 (8 pts) `[ ]`: As a leadership stakeholder, I want the demo UI to call live backend endpoints so scenario data is authoritative and the frontend never goes stale.
+- Acceptance highlights:
+  - `llm_explorer.html` fetches scenarios from `/api/scenarios` instead of static in-page data.
+  - Compare cards update from `/api/compare/{id}` on scenario selection.
+  - Graceful error banner when backend is unreachable.
+  - Coverage remains at 100% after API layer is added.
+- Tasks:
+  - T12.1 Add FastAPI/Starlette server wrapping `DemoBackendService` (2 pts) `[ ]`
+  - T12.2 Replace static JS data with `fetch()` calls in `llm_explorer.html` (3 pts) `[ ]`
+  - T12.3 Add error banner and graceful degradation (1 pt) `[ ]`
+  - T12.4 Add smoke tests for API endpoints (2 pts) `[ ]`
+
+### F14. Live Execution Canary Validation
+- Story US-14 (5 pts) `[ ]`: As a platform owner, I want EAR validated against real providers so execution pipeline confidence is grounded in real calls, not just mocks.
+- Acceptance highlights:
+  - Canary script runs against at least two real OpenRouter providers.
+  - Response structure, telemetry fields (latency, tokens, cost) are non-zero.
+  - Canary pass criteria documented in release-playbook.md.
+- Tasks:
+  - T13.1 Create canary execution script with configurable model and prompt (2 pts) `[ ]`
+  - T13.2 Run canary against two real providers and assert response structure (2 pts) `[ ]`
+  - T13.3 Document canary pass criteria in release-playbook.md (1 pt) `[ ]`
+
+### F15. Benchmark Harness Execution and Results
+- Story US-15 (5 pts) `[ ]`: As a platform owner, I want the evaluation harness to produce documented benchmark results so routing quality claims are backed by evidence.
+- Acceptance highlights:
+  - Precision, recall, and F1 recorded per intent class and injection category.
+  - Semantic classifier meets or exceeds heuristic baseline on safety-critical categories.
+  - Results referenced from README.
+- Tasks:
+  - T14.1 Run evaluation harness on full scenario set (2 pts) `[ ]`
+  - T14.2 Compute and record precision/recall/F1 in `docs/benchmark_results.md` (2 pts) `[ ]`
+  - T14.3 Reference benchmark results from README (1 pt) `[ ]`
+
+### F16. Architecture Decision Records Backfill
+- Story US-16 (4 pts) `[ ]`: As a contributor, I want key architecture decisions recorded in ADRs so the design intent is preserved for future maintainers.
+- Acceptance highlights:
+  - ADR exists for each major design decision; follows existing `0001-` naming convention.
+  - Each ADR covers context, options considered, and chosen approach.
+- Tasks:
+  - T15.1 Write ADR for LiteLLM as execution adapter (1 pt) `[ ]`
+  - T15.2 Write ADR for guardrail scoring and semantic injection detection (1 pt) `[ ]`
+  - T15.3 Write ADR for MCP transport design and tool exposure (1 pt) `[ ]`
+  - T15.4 Write ADR for demo backend deterministic replay design (1 pt) `[ ]`
+
 ## Milestones
 
 ### M1. Foundation and Registry (Target: Week 1) `[x]`
@@ -194,10 +264,20 @@
   - Investor/leadership demo app shows measurable EAR value narrative
   - Demo flow passes scripted walkthrough and smoke tests
 
+### M7. Post-Launch Hardening (Target: Week 9–10) `[ ]`
+- Scope: F12, F13, F14, F15, F16
+- Exit criteria:
+  - v0.10.3 release verified on PyPI; install smoke test passes
+  - `master` mirrored to `main` with no divergence
+  - Live demo backend wired to `llm_explorer.html` frontend
+  - Canary executed against two real providers with telemetry confirmed
+  - Benchmark precision/recall results documented in `docs/benchmark_results.md`
+  - ADRs filed for LiteLLM, guardrails, MCP transport, and demo replay design
+
 ## Capacity and Sizing Summary
-- Total story points: 60
+- Total story points: 87
 - Suggested team capacity assumption: 10 to 14 points/week
-- Estimated timeline: 6 to 8 weeks depending on team size and external API volatility
+- Estimated timeline: 9 to 10 weeks depending on team size and external API volatility
 
 ## Risk Register
 1. OpenRouter payload changes break parsing
