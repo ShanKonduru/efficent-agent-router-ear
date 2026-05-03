@@ -84,10 +84,17 @@ _MEDICAL_SENSITIVE_PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"\bchronic\s+(?:diseases?|deceases|conditions?)\b", re.IGNORECASE),
     re.compile(r"\bdiagnos(?:is|es|ed|ing)\b", re.IGNORECASE),
     re.compile(r"\bmedications?\b", re.IGNORECASE),
+    re.compile(r"\bprescri(?:bed?|ption|bing)\b", re.IGNORECASE),  # prescribed, prescription
     re.compile(r"\btreatments?\b", re.IGNORECASE),
+    re.compile(r"\btherapy\b", re.IGNORECASE),  # medical therapy
     re.compile(r"\bsymptoms?\b", re.IGNORECASE),
     re.compile(r"\bmedical\s+history\b", re.IGNORECASE),
     re.compile(r"\blab\s+results?\b", re.IGNORECASE),
+    re.compile(r"\bblood\s+pressure\b", re.IGNORECASE),  # vital sign
+    re.compile(r"\b(?:heart\s+rate|pulse|temperature|respiratory\s+rate)\b", re.IGNORECASE),  # other vitals
+    re.compile(r"\bdosage\b", re.IGNORECASE),  # medication dosage
+    re.compile(r"\b(?:surgery|surgical\s+procedure|operation)\b", re.IGNORECASE),  # surgical
+    re.compile(r"\b(?:allerg(?:y|ies)|adverse\s+reaction)\b", re.IGNORECASE),  # allergies
 ]
 
 

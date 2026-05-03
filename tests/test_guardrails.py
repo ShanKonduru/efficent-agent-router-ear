@@ -91,6 +91,36 @@ class TestGuardrailsCheckerInit:
 
         assert not checker._detect_pii("What is a chronic disease?")
 
+    def test_detect_medical_record_with_prescription_as_phi(self) -> None:
+        checker = GuardrailsChecker()
+        prompt = "Review this medical record: Patient ID 98765, blood pressure 140/90, prescribed metformin 500mg."
+
+        result = checker.check(prompt)
+
+        assert result.passed is True
+        assert result.pii_detected is True
+        assert "PHI_MEDICAL_CONTEXT" in result.reason_codes
+
+    def test_detect_patient_vital_signs_as_phi(self) -> None:
+        checker = GuardrailsChecker()
+        prompt = "Patient has heart rate of 95 bpm and temperature 101.5 F"
+
+        result = checker.check(prompt)
+
+        assert result.passed is True
+        assert result.pii_detected is True
+        assert "PHI_MEDICAL_CONTEXT" in result.reason_codes
+
+    def test_detect_medication_dosage_as_phi(self) -> None:
+        checker = GuardrailsChecker()
+        prompt = "The patient requires dosage adjustment for insulin therapy"
+
+        result = checker.check(prompt)
+
+        assert result.passed is True
+        assert result.pii_detected is True
+        assert "PHI_MEDICAL_CONTEXT" in result.reason_codes
+
     def test_detect_pii_false(self) -> None:
         checker = GuardrailsChecker()
         assert not checker._detect_pii("no personal data here")

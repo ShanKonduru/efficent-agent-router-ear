@@ -311,6 +311,58 @@ class OllamaRegistry(BaseModelRegistry):
 
 
 # ---------------------------------------------------------------------------
+# Composite registry - merges models from multiple providers
+# ---------------------------------------------------------------------------
+
+class CompositeRegistry(BaseModelRegistry):
+    """Aggregates models from multiple registries (e.g., OpenRouter + Ollama).
+    
+    This enables hybrid routing where cloud models and local models are available
+    together, with guardrails selecting between them based on safety constraints.
+    """
+
+    def __init__(self, registries: list[BaseModelRegistry]) -> None:
+        self._registries = registries
+
+    @property
+    def provider_name(self) -> str:
+        providers = [r.provider_name for r in self._registries]
+        return f"composite({','.join(providers)})"
+
+    async def get_models(self) -> list[LLMSpec]:
+        """Return merged model list from all child registries."""
+        all_models: list[LLMSpec] = []
+        for registry in self._registries:
+            try:
+                models = await registry.get_models()
+                all_models.extend(models)
+            except Exception as exc:
+                logger.warning(
+                    "Registry %s failed during composite fetch: %r",
+                    registry.provider_name,
+                    exc,
+                )
+        logger.debug(
+            "CompositeRegistry returned %d models from %d providers.",
+            len(all_models),
+            len(self._registries),
+        )
+        return all_models
+
+    async def refresh(self) -> None:
+        """Force refresh on all child registries."""
+        for registry in self._registries:
+            try:
+                await registry.refresh()
+            except Exception as exc:
+                logger.warning(
+                    "Registry %s failed during composite refresh: %r",
+                    registry.provider_name,
+                    exc,
+                )
+
+
+# ---------------------------------------------------------------------------
 # Factory - extension point for new providers
 # ---------------------------------------------------------------------------
 
@@ -339,6 +391,10 @@ class RegistryFactory:
     def create(cls, config: EARConfig, provider: str = "openrouter") -> BaseModelRegistry:
         """Instantiate and return a registry for the given *provider* name.
 
+        When Ollama is enabled (EAR_OLLAMA_ENABLED=true), a CompositeRegistry is
+        automatically created that merges OpenRouter cloud models with local Ollama
+        models, enabling hybrid routing for PII/PHI safety constraints.
+
         Args:
             config: Runtime configuration (API keys, timeouts, etc.).
             provider: Case-insensitive provider key.  Defaults to ``"openrouter"``.
@@ -347,6 +403,19 @@ class RegistryFactory:
             ValueError: If *provider* is not registered.
         """
         key = provider.lower().strip()
+        
+        # If Ollama is enabled and provider is openrouter, create composite registry
+        if config.ear_ollama_enabled and key == "openrouter":
+            logger.info(
+                "Ollama enabled: creating CompositeRegistry (OpenRouter + Ollama)"
+            )
+            registries = [
+                OpenRouterRegistry(config),
+                OllamaRegistry(config),
+            ]
+            return CompositeRegistry(registries)
+        
+        # Otherwise create single-provider registry
         registry_class = cls._PROVIDERS.get(key)
         if registry_class is None:
             supported = ", ".join(sorted(cls._PROVIDERS))
