@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from ear.models import LLMSpec
-from ear.registry import BaseModelRegistry, OllamaRegistry, RegistryClient, RegistryFactory
+from ear.registry import BaseModelRegistry, CompositeRegistry, OllamaRegistry, RegistryClient, RegistryFactory
 
 
 class TestRegistryClientInit:
@@ -181,7 +181,9 @@ class TestRegistryFactory:
     def test_create_default_provider(self, config) -> None:  # type: ignore[no-untyped-def]
         registry = RegistryFactory.create(config)
 
-        assert isinstance(registry, RegistryClient)
+        # When Ollama is enabled in config, returns CompositeRegistry
+        # When Ollama is disabled, returns RegistryClient
+        assert isinstance(registry, (RegistryClient, CompositeRegistry))
 
     def test_create_unknown_provider_raises(self, config) -> None:  # type: ignore[no-untyped-def]
         with pytest.raises(ValueError, match="Unknown provider"):
@@ -402,3 +404,127 @@ class TestOllamaRegistry:
         result = registry._parse_model({"name": "llama3"})
 
         assert result is None
+
+
+# ── TestCompositeRegistry ─────────────────────────────────────────────────────
+
+
+class TestCompositeRegistry:
+    """Tests for CompositeRegistry that merges multiple model registries."""
+
+    class _MockRegistry(BaseModelRegistry):
+        """Mock registry for testing."""
+
+        def __init__(self, name: str, models: list[LLMSpec]) -> None:
+            self._name = name
+            self._models = models
+            self._should_fail = False
+
+        @property
+        def provider_name(self) -> str:
+            return self._name
+
+        async def get_models(self) -> list[LLMSpec]:
+            if self._should_fail:
+                raise RuntimeError(f"{self._name} get_models failed")
+            return list(self._models)
+
+        async def refresh(self) -> None:
+            if self._should_fail:
+                raise RuntimeError(f"{self._name} refresh failed")
+
+    async def test_provider_name_combines_child_providers(self) -> None:
+        reg1 = self._MockRegistry("provider1", [])
+        reg2 = self._MockRegistry("provider2", [])
+        composite = CompositeRegistry([reg1, reg2])
+
+        assert composite.provider_name == "composite(provider1,provider2)"
+
+    async def test_get_models_merges_all_registries(self) -> None:
+        models1 = [LLMSpec(id="model1", name="Model 1", context_length=1000)]
+        models2 = [LLMSpec(id="model2", name="Model 2", context_length=2000)]
+        reg1 = self._MockRegistry("provider1", models1)
+        reg2 = self._MockRegistry("provider2", models2)
+        composite = CompositeRegistry([reg1, reg2])
+
+        result = await composite.get_models()
+
+        assert len(result) == 2
+        assert result[0].id == "model1"
+        assert result[1].id == "model2"
+
+    async def test_get_models_continues_on_registry_failure(self, caplog: pytest.LogCaptureFixture) -> None:
+        """When one registry fails, composite should still return models from others."""
+        models_good = [LLMSpec(id="good-model", name="Good Model", context_length=1000)]
+        reg_good = self._MockRegistry("good-provider", models_good)
+        reg_bad = self._MockRegistry("bad-provider", [])
+        reg_bad._should_fail = True
+
+        composite = CompositeRegistry([reg_bad, reg_good])
+
+        with caplog.at_level("WARNING"):
+            result = await composite.get_models()
+
+        assert len(result) == 1
+        assert result[0].id == "good-model"
+        assert "bad-provider failed during composite fetch" in caplog.text
+
+    async def test_get_models_empty_when_all_registries_fail(self, caplog: pytest.LogCaptureFixture) -> None:
+        reg1 = self._MockRegistry("provider1", [])
+        reg2 = self._MockRegistry("provider2", [])
+        reg1._should_fail = True
+        reg2._should_fail = True
+
+        composite = CompositeRegistry([reg1, reg2])
+
+        with caplog.at_level("WARNING"):
+            result = await composite.get_models()
+
+        assert len(result) == 0
+        assert "provider1 failed during composite fetch" in caplog.text
+        assert "provider2 failed during composite fetch" in caplog.text
+
+    async def test_refresh_calls_all_registries(self) -> None:
+        reg1 = self._MockRegistry("provider1", [])
+        reg2 = self._MockRegistry("provider2", [])
+        composite = CompositeRegistry([reg1, reg2])
+
+        # Should not raise even though registries don't track refresh state
+        await composite.refresh()
+
+    async def test_refresh_continues_on_registry_failure(self, caplog: pytest.LogCaptureFixture) -> None:
+        """When one registry fails refresh, composite should still refresh others."""
+        reg_good = self._MockRegistry("good-provider", [])
+        reg_bad = self._MockRegistry("bad-provider", [])
+        reg_bad._should_fail = True
+
+        composite = CompositeRegistry([reg_bad, reg_good])
+
+        with caplog.at_level("WARNING"):
+            await composite.refresh()
+
+        assert "bad-provider failed during composite refresh" in caplog.text
+
+    async def test_factory_creates_composite_when_ollama_enabled(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """RegistryFactory should create CompositeRegistry when Ollama is enabled."""
+        monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-test-key")
+        monkeypatch.setenv("EAR_OLLAMA_ENABLED", "true")
+
+        from ear.config import EARConfig
+        config = EARConfig()  # type: ignore[call-arg]
+        registry = RegistryFactory.create(config)
+
+        assert isinstance(registry, CompositeRegistry)
+        assert "openrouter" in registry.provider_name.lower()
+        assert "ollama" in registry.provider_name.lower()
+
+    async def test_factory_creates_registryclient_when_ollama_disabled(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """RegistryFactory should create RegistryClient when Ollama is disabled."""
+        monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-test-key")
+        monkeypatch.setenv("EAR_OLLAMA_ENABLED", "false")
+
+        from ear.config import EARConfig
+        config = EARConfig()  # type: ignore[call-arg]
+        registry = RegistryFactory.create(config)
+
+        assert isinstance(registry, RegistryClient)
