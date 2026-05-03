@@ -62,6 +62,23 @@ class EARConfig(BaseSettings):
         description="Enable Ollama as a private provider for sensitive and blocked prompts.",
     )
 
+    ear_judge_enabled: bool = Field(
+        default=False,
+        description="Enable judge-based routing using a local LLM to make intelligent routing decisions.",
+    )
+
+    ear_judge_model: str = Field(
+        default="llama3.2",
+        description="Ollama model ID to use as the routing judge (e.g., 'llama3.2', 'mistral').",
+    )
+
+    ear_judge_confidence_threshold: float = Field(
+        default=0.6,
+        ge=0.0,
+        le=1.0,
+        description="Minimum confidence threshold for judge decisions. Below this, fall back to heuristics.",
+    )
+
 
 def get_config() -> EARConfig:
     """Return a validated EARConfig loaded from the environment."""

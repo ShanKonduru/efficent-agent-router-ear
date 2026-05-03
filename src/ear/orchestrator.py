@@ -25,6 +25,7 @@ from ear.executor import (
     _compute_cost,
 )
 from ear.guardrails import GuardrailsChecker, OLLAMA_PROVIDER
+from ear.judge import JudgeRoutingClassifier
 from ear.metrics import MetricsCollector, get_metrics_collector
 from ear.models import (
     ExecutionResult,
@@ -58,11 +59,13 @@ class ExecutionOrchestrator:
         router: RouterEngine,
         pipeline: ExecutingFallbackPipeline,
         metrics: MetricsCollector,
+        judge: JudgeRoutingClassifier | None = None,
     ) -> None:
         self._guardrails = guardrails
         self._router = router
         self._pipeline = pipeline
         self._metrics = metrics
+        self._judge = judge
 
     @classmethod
     def from_config(cls, config: EARConfig) -> "ExecutionOrchestrator":
@@ -82,11 +85,31 @@ class ExecutionOrchestrator:
                 executor=openrouter_executor,
                 max_retries=config.ear_max_retries,
             )
+
+        # Initialize judge if enabled
+        judge = None
+        if config.ear_judge_enabled and config.ear_ollama_enabled:
+            judge = JudgeRoutingClassifier(
+                config=config,
+                judge_model=config.ear_judge_model,
+                fallback_to_heuristic=True,
+            )
+            logger.info(
+                "Judge-based routing enabled with model=%s confidence_threshold=%.2f",
+                config.ear_judge_model,
+                config.ear_judge_confidence_threshold,
+            )
+        elif config.ear_judge_enabled and not config.ear_ollama_enabled:
+            logger.warning(
+                "Judge routing requires Ollama to be enabled. Disabling judge routing."
+            )
+
         return cls(
             guardrails=GuardrailsChecker(),
             router=RouterEngine(),
             pipeline=pipeline,
             metrics=get_metrics_collector(),
+            judge=judge,
         )
 
     async def run(
@@ -166,7 +189,10 @@ class ExecutionOrchestrator:
                     guardrail_result.risk_score,
                 )
         else:
-            candidate_models = list(models)
+            # No security concerns: use judge-based routing if available
+            candidate_models = await self._determine_candidates_via_judge(
+                request, models, ollama_models
+            )
 
         # 3. Routing decision
         decision = self._router.decide(request, candidate_models)
@@ -215,3 +241,79 @@ class ExecutionOrchestrator:
             estimated_cost_usd=cost,
             guardrail_result=guardrail_result,
         )
+
+    async def _determine_candidates_via_judge(
+        self,
+        request: RoutingRequest,
+        all_models: list[LLMSpec],
+        ollama_models: list[LLMSpec],
+    ) -> list[LLMSpec]:
+        """Use judge to determine whether to route locally or to cloud.
+
+        Falls back to all models if judge is unavailable or has low confidence.
+        """
+        if not self._judge:
+            # No judge configured: use all available models
+            return list(all_models)
+
+        try:
+            # Ask the judge to make a routing decision
+            judge_decision = await self._judge.decide(
+                prompt=request.prompt,
+                task_type=request.task_type,
+                budget_priority=request.budget_priority,
+            )
+
+            logger.info(
+                "Judge decision: prefer_local=%s confidence=%.2f reason=%s",
+                judge_decision.prefer_local,
+                judge_decision.confidence,
+                judge_decision.reasoning,
+            )
+
+            # Apply judge decision if confidence is high enough
+            from ear.config import get_config
+            config = get_config()
+            if judge_decision.confidence < config.ear_judge_confidence_threshold:
+                logger.info(
+                    "Judge confidence %.2f below threshold %.2f; using all models.",
+                    judge_decision.confidence,
+                    config.ear_judge_confidence_threshold,
+                )
+                return list(all_models)
+
+            # High confidence: apply judge recommendation
+            if judge_decision.prefer_local:
+                if ollama_models:
+                    logger.info(
+                        "Judge recommends local routing (confidence=%.2f); using %d Ollama models.",
+                        judge_decision.confidence,
+                        len(ollama_models),
+                    )
+                    return ollama_models
+                else:
+                    logger.warning(
+                        "Judge recommends local but no Ollama models available; "
+                        "falling back to cloud models."
+                    )
+                    return list(all_models)
+            else:
+                # Prefer cloud: filter out Ollama models
+                cloud_models = [m for m in all_models if not m.id.startswith(f"{OLLAMA_PROVIDER}/")]
+                if cloud_models:
+                    logger.info(
+                        "Judge recommends cloud routing (confidence=%.2f); using %d cloud models.",
+                        judge_decision.confidence,
+                        len(cloud_models),
+                    )
+                    return cloud_models
+                else:
+                    logger.warning(
+                        "Judge recommends cloud but no cloud models available; "
+                        "falling back to Ollama."
+                    )
+                    return ollama_models
+
+        except Exception as e:
+            logger.warning("Judge routing failed: %s. Using all available models.", e)
+            return list(all_models)
