@@ -312,21 +312,30 @@ def create_handler(router: DemoRequestRouter) -> type[BaseHTTPRequestHandler]:
 
         def _send_json(self, status: int, payload: dict[str, Any]) -> None:
             response = json.dumps(payload).encode("utf-8")
-            self.send_response(status)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Content-Length", str(len(response)))
-            self._send_cors_headers()
-            self.end_headers()
-            self.wfile.write(response)
+            self._write_response(
+                status=status,
+                content_type="application/json",
+                response=response,
+            )
 
         def _send_html(self, status: int, payload: str) -> None:
             response = payload.encode("utf-8")
-            self.send_response(status)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Content-Length", str(len(response)))
-            self._send_cors_headers()
-            self.end_headers()
-            self.wfile.write(response)
+            self._write_response(
+                status=status,
+                content_type="text/html; charset=utf-8",
+                response=response,
+            )
+
+        def _write_response(self, status: int, content_type: str, response: bytes) -> None:
+            try:
+                self.send_response(status)
+                self.send_header("Content-Type", content_type)
+                self.send_header("Content-Length", str(len(response)))
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(response)
+            except (BrokenPipeError, ConnectionResetError):
+                return
 
         def _send_cors_headers(self) -> None:
             self.send_header("Access-Control-Allow-Origin", "*")

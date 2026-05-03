@@ -20,6 +20,20 @@ function formatMs(value) {
   return `${numeric.toFixed(2)} ms`;
 }
 
+function makeLogEntry(message, kind = "info") {
+  return {
+    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    message,
+    kind,
+    time: new Date().toLocaleTimeString(),
+  };
+}
+
+function toNumber(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 export default function App() {
   const [models, setModels] = useState([]);
   const [stats, setStats] = useState(null);
@@ -27,6 +41,10 @@ export default function App() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [activityLog, setActivityLog] = useState([
+    makeLogEntry("Console ready. Waiting for your question."),
+  ]);
 
   const hasOverride = useMemo(() => {
     if (!result || !result.requested_model) {
@@ -35,29 +53,102 @@ export default function App() {
     return result.requested_model !== result.selected_model;
   }, [result]);
 
+  function appendLog(message, kind = "info") {
+    setActivityLog((previous) => [makeLogEntry(message, kind), ...previous].slice(0, 16));
+  }
+
+  function appendEarPhaseLogs(responsePayload) {
+    const guardrails = responsePayload.guardrails || {};
+    const guardrailSummary = [
+      `passed=${String(guardrails.passed)}`,
+      `injection=${String(guardrails.injection_detected)}`,
+      `pii=${String(guardrails.pii_detected)}`,
+      `risk=${toNumber(guardrails.risk_score).toFixed(2)}`,
+    ].join(", ");
+
+    appendLog(`Phase 1/4 Guardrails: ${guardrailSummary}`);
+    appendLog(
+      `Phase 2/4 Routing: selected ${responsePayload.selected_model} (${responsePayload.provider})`,
+    );
+
+    const fallbackTrace = responsePayload.fallback_trace || [];
+    if (fallbackTrace.length > 0) {
+      appendLog(
+        `Phase 3/4 Execution: ${fallbackTrace.length} attempt(s) via ${fallbackTrace.join(" -> ")}`,
+      );
+    } else {
+      appendLog("Phase 3/4 Execution: route-only preview (no provider call).", "warn");
+    }
+
+    if (responsePayload.requested_model && !responsePayload.requested_model_applied) {
+      appendLog(
+        `Preference override: requested ${responsePayload.requested_model}, routed to ${responsePayload.selected_model}`,
+        "warn",
+      );
+    }
+
+    appendLog(
+      `Phase 4/4 Render: ${responsePayload.total_tokens} tokens, ${formatCurrency(responsePayload.estimated_cost_usd)}, ${formatMs(responsePayload.end_to_end_latency_ms)}`,
+      "success",
+    );
+  }
+
+  useEffect(() => {
+    document.body.classList.toggle("app-busy", loading);
+    return () => {
+      document.body.classList.remove("app-busy");
+    };
+  }, [loading]);
+
+  useEffect(() => {
+    if (!loading) {
+      setProgress((current) => (current >= 100 ? current : 0));
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setProgress((current) => {
+        if (current >= 92) {
+          return current;
+        }
+        return current + 8;
+      });
+    }, 280);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [loading]);
+
   async function loadModels() {
     try {
+      appendLog("GET /live/models - fetching available LLMs");
       const response = await fetch(`${API_BASE}/live/models`);
       const payload = await response.json();
       if (!response.ok || payload.error) {
         throw new Error(payload.reason || payload.error || "Unable to load models.");
       }
       setModels(payload.models || []);
+      appendLog(`Model catalog loaded: ${payload.models?.length || 0} models available`, "success");
     } catch (loadError) {
       setError(loadError.message);
+      appendLog(`Model catalog failed: ${loadError.message}`, "error");
     }
   }
 
   async function loadStats() {
     try {
+      appendLog("GET /live/stats - refreshing session telemetry");
       const response = await fetch(`${API_BASE}/live/stats`);
       const payload = await response.json();
       if (!response.ok) {
         throw new Error("Failed to load stats.");
       }
       setStats(payload);
+      appendLog(`Stats refreshed: ${payload.total_calls} calls tracked`, "success");
     } catch {
       setStats(null);
+      appendLog("Stats refresh unavailable.", "warn");
     }
   }
 
@@ -76,8 +167,10 @@ export default function App() {
   async function onSubmit(event) {
     event.preventDefault();
     setLoading(true);
+    setProgress(12);
     setError("");
     setResult(null);
+    appendLog("Validating prompt and building EAR request payload...");
 
     const payload = {
       prompt: form.prompt,
@@ -88,6 +181,8 @@ export default function App() {
     };
 
     try {
+      appendLog("POST /live/route-execute - handing request to EAR router");
+      setProgress(28);
       const response = await fetch(`${API_BASE}/live/route-execute`, {
         method: "POST",
         headers: {
@@ -95,21 +190,34 @@ export default function App() {
         },
         body: JSON.stringify(payload),
       });
+      appendLog("Awaiting EAR decision and provider execution...");
+      setProgress(70);
       const responsePayload = await response.json();
       if (!response.ok || responsePayload.error) {
         throw new Error(responsePayload.reason || responsePayload.error || "Execution failed.");
       }
       setResult(responsePayload);
+      setProgress(92);
+      appendLog(
+        `EAR selected ${responsePayload.selected_model} with ${responsePayload.total_tokens} total tokens`,
+        "success",
+      );
+      appendEarPhaseLogs(responsePayload);
       await loadStats();
+      setProgress(100);
+      appendLog("Response rendered to UI.", "success");
     } catch (submitError) {
       setError(submitError.message);
+      appendLog(`Execution failed: ${submitError.message}`, "error");
     } finally {
-      setLoading(false);
+      window.setTimeout(() => {
+        setLoading(false);
+      }, 250);
     }
   }
 
   return (
-    <div className="page-shell">
+    <div className={loading ? "page-shell is-loading" : "page-shell"}>
       <header className="hero">
         <p className="eyebrow">Live Data Only</p>
         <h1>EAR Routing Console</h1>
@@ -117,6 +225,16 @@ export default function App() {
           Ask any question. EAR selects the best model, can override your preference when policy
           or scoring requires it, and returns full transparency for every decision.
         </p>
+        <div className="hero-status-row">
+          <div className="progress-shell" aria-live="polite">
+            <div className="progress-track">
+              <div className="progress-bar" style={{ width: `${progress}%` }} />
+            </div>
+            <p className="progress-copy">
+              {loading ? `Processing request... ${progress}%` : "Ready for the next request."}
+            </p>
+          </div>
+        </div>
       </header>
 
       <main className="layout-grid">
@@ -289,6 +407,17 @@ export default function App() {
               <p>Total Latency: {formatMs(stats.total_latency_ms)}</p>
             </div>
           )}
+        </article>
+        <article className="activity-card">
+          <h3>Activity Log</h3>
+          <div className="activity-log" aria-live="polite">
+            {activityLog.map((entry) => (
+              <div className={`activity-entry ${entry.kind}`} key={entry.id}>
+                <span className="activity-time">{entry.time}</span>
+                <span className="activity-message">{entry.message}</span>
+              </div>
+            ))}
+          </div>
         </article>
       </footer>
     </div>

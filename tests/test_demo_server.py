@@ -601,6 +601,39 @@ class TestDemoHttpHandler:
             server.server_close()
             thread.join(timeout=2)
 
+    def test_send_json_ignores_client_disconnect(self) -> None:
+        router = DemoRequestRouter(live_service=_FakeLiveService())
+        handler_class = create_handler(router)
+
+        class _FakeWriter:
+            def write(self, _data: bytes) -> None:
+                return
+
+        class _FakeHandler:
+            def __init__(self) -> None:
+                self.wfile = _FakeWriter()
+
+            def send_response(self, _status: int) -> None:
+                return
+
+            def send_header(self, _name: str, _value: str) -> None:
+                return
+
+            def _send_cors_headers(self) -> None:
+                return
+
+            def end_headers(self) -> None:
+                raise ConnectionResetError("client disconnected")
+
+        fake_handler = _FakeHandler()
+
+        handler_class._write_response(
+            fake_handler,
+            status=200,
+            content_type="application/json",
+            response=b'{"ok": true}',
+        )
+
 
 class TestServeDemoApi:
     def test_serve_demo_api_invokes_server(self, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -26,10 +26,19 @@ body {
   min-height: 100vh;
 }
 
+body.app-busy,
+body.app-busy * {
+  cursor: wait !important;
+}
+
 .page-shell {
   max-width: 1240px;
   margin: 0 auto;
   padding: 1.4rem;
+}
+
+.page-shell.is-loading {
+  filter: saturate(0.98);
 }
 
 .hero {
@@ -48,6 +57,38 @@ body {
 .hero p {
   margin: 0;
   max-width: 70ch;
+}
+
+.hero-status-row {
+  margin-top: 1rem;
+}
+
+.progress-shell {
+  display: grid;
+  gap: 0.35rem;
+  max-width: 560px;
+}
+
+.progress-track {
+  height: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+}
+
+.progress-bar {
+  height: 100%;
+  min-width: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ffd36a 0%, #f69b56 48%, #fff4cc 100%);
+  box-shadow: 0 0 22px rgba(255, 211, 106, 0.45);
+  transition: width 180ms ease-out;
+}
+
+.progress-copy {
+  font-size: 0.9rem;
+  opacity: 0.95;
 }
 
 .eyebrow {
@@ -202,6 +243,9 @@ button:disabled {
 
 .footer-strip {
   margin-top: 1rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
 }
 
 .stats-row {
@@ -214,6 +258,52 @@ button:disabled {
   color: var(--muted);
 }
 
+.activity-card {
+  min-height: 260px;
+}
+
+.activity-log {
+  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.55rem;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.activity-entry {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: 12px;
+  border: 1px solid #eadcbf;
+  background: #fffcf6;
+}
+
+.activity-entry.success {
+  border-color: #b8dccf;
+  background: #f1fbf6;
+}
+
+.activity-entry.warn {
+  border-color: #efd3a3;
+  background: #fff7e8;
+}
+
+.activity-entry.error {
+  border-color: #e4b5b5;
+  background: #fff1f1;
+}
+
+.activity-time {
+  font-family: "IBM Plex Mono", Consolas, monospace;
+  font-size: 0.73rem;
+  color: #7b6540;
+}
+
+.activity-message {
+  font-size: 0.9rem;
+}
+
 @media (min-width: 960px) {
   .layout-grid {
     grid-template-columns: minmax(340px, 0.42fr) 1fr;
@@ -221,5 +311,10 @@ button:disabled {
 
   .input-row {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .footer-strip {
+    grid-template-columns: minmax(280px, 0.46fr) 1fr;
+    align-items: start;
   }
 }
