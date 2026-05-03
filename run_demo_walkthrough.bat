@@ -1,6 +1,15 @@
 @echo off
 setlocal
 
+set VENV=.venv\Scripts\activate.bat
+
+if not exist "%VENV%" (
+    echo [ERROR] Virtual environment not found. Run: python -m venv .venv ^&^& .venv\Scripts\pip install -e ".[dev]"
+    exit /b 1
+)
+
+call "%VENV%"
+
 echo [EAR Demo] Running demo smoke tests...
 python -m pytest tests/test_demo_backend.py -q
 if errorlevel 1 (

@@ -19,8 +19,7 @@ call "%VENV%"
 if not exist "%REPORTS_DIR%" mkdir "%REPORTS_DIR%"
 
 :: Timestamp for uniquely named report files (YYYYMMDD_HHMMSS)
-for /f "tokens=2 delims==" %%I in ('wmic os get localdatetime /value 2^>nul') do set DT=%%I
-set TIMESTAMP=%DT:~0,8%_%DT:~8,6%
+for /f "tokens=*" %%i in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd_HHmmss"') do set TIMESTAMP=%%i
 
 set REPORT_JSON=%REPORTS_DIR%\pip_audit_%TIMESTAMP%.json
 set REPORT_CYCLONE=%REPORTS_DIR%\pip_audit_cyclonedx_%TIMESTAMP%.json
@@ -41,6 +40,13 @@ set AUDIT_EXIT=%ERRORLEVEL%
 
 python -m pip_audit --format=cyclonedx-json --output="%REPORT_CYCLONE%" --progress-spinner=off 2>nul
 :: CycloneDX exit code is secondary; don't abort on it.
+
+:: Check if JSON report was created before proceeding
+if not exist "%REPORT_JSON%" (
+    echo [ERROR] pip-audit did not produce a report. Exit code: %AUDIT_EXIT%
+    echo [ERROR] Check if pip-audit is installed: python -m pip install pip-audit
+    exit /b %AUDIT_EXIT%
+)
 
 :: Copy to a stable "latest" name for dashboards / CI artefacts.
 copy /Y "%REPORT_JSON%" "%LATEST_JSON%" >nul

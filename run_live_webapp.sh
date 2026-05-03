@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+VENV=".venv/bin/activate"
+
+if [[ ! -f "$VENV" ]]; then
+    echo "[ERROR] Virtual environment not found."
+    echo "        Run: python -m venv .venv && .venv/bin/pip install -e '.[dev]'"
+    exit 1
+fi
+
+# shellcheck disable=SC1090
+source "$VENV"
+
 if ! command -v node >/dev/null 2>&1; then
   echo "[EAR Live UI] Node.js is required but was not found on PATH."
   echo "[EAR Live UI] Install Node.js LTS, restart your shell, and run this script again."

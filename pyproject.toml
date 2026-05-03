@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "efficient-agent-router-ear"
-version = "0.10.17"
+version = "0.10.18"
 description = "Efficient Agent Router — routes tasks to the best LLM under quality, latency, cost, and safety constraints"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -23,6 +23,7 @@ dev = [
     "pytest-cov>=5.0.0",
     "bandit[toml]>=1.7.9",
     "pip-audit>=2.7.0",
+    "sec-report-kit>=0.1.0",
     "pylint>=3.0.0",
     "black>=24.0.0",
     "mypy>=1.8.0",

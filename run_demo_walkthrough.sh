@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+VENV=".venv/bin/activate"
+
+if [[ ! -f "$VENV" ]]; then
+    echo "[ERROR] Virtual environment not found."
+    echo "        Run: python -m venv .venv && .venv/bin/pip install -e '.[dev]'"
+    exit 1
+fi
+
+# shellcheck disable=SC1090
+source "$VENV"
+
 echo "[EAR Demo] Running demo smoke tests..."
 python -m pytest tests/test_demo_backend.py -q
 

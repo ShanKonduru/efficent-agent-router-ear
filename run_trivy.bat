@@ -11,7 +11,15 @@
 :: ============================================================
 setlocal EnableDelayedExpansion
 
+set VENV=.venv\Scripts\activate.bat
 set REPORTS_DIR=security_reports
+
+if not exist "%VENV%" (
+    echo [ERROR] Virtual environment not found. Run: python -m venv .venv ^&^& .venv\Scripts\pip install -e ".[dev]"
+    exit /b 1
+)
+
+call "%VENV%"
 set SCAN_TARGET=.
 set IGNOREFILE_ARG=
 set SCANNERS=vuln,misconfig
@@ -34,8 +42,7 @@ if %ERRORLEVEL% NEQ 0 (
 if not exist "%REPORTS_DIR%" mkdir "%REPORTS_DIR%"
 
 :: Timestamp
-for /f "tokens=2 delims==" %%I in ('wmic os get localdatetime /value 2^>nul') do set DT=%%I
-set TIMESTAMP=%DT:~0,8%_%DT:~8,6%
+for /f "tokens=*" %%i in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd_HHmmss"') do set TIMESTAMP=%%i
 
 set REPORT_JSON=%REPORTS_DIR%\trivy_%TIMESTAMP%.json
 set LATEST_JSON=%REPORTS_DIR%\trivy_latest.json
@@ -65,6 +72,13 @@ trivy fs ^
     --output "%REPORT_JSON%" ^
     %SCAN_TARGET% %*
 set TRIVY_EXIT=%ERRORLEVEL%
+
+:: Check if JSON report was created before proceeding
+if not exist "%REPORT_JSON%" (
+    echo [ERROR] Trivy did not produce a report. Exit code: %TRIVY_EXIT%
+    echo [ERROR] Ensure trivy is installed and accessible.
+    exit /b %TRIVY_EXIT%
+)
 
 copy /Y "%REPORT_JSON%"  "%LATEST_JSON%"  >nul 2>&1
 

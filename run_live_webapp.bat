@@ -1,6 +1,15 @@
 @echo off
 setlocal
 
+set VENV=.venv\Scripts\activate.bat
+
+if not exist "%VENV%" (
+    echo [ERROR] Virtual environment not found. Run: python -m venv .venv ^&^& .venv\Scripts\pip install -e ".[dev]"
+    exit /b 1
+)
+
+call "%VENV%"
+
 where node >nul 2>&1
 if errorlevel 1 goto install_node
 
