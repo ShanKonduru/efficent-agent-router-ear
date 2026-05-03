@@ -26,7 +26,7 @@ class TestParseInt:
 
 class TestDemoRequestRouter:
     def setup_method(self) -> None:
-        self.router = DemoRequestRouter(DemoBackendService())
+        self.router = DemoRequestRouter()
 
     def test_get_scenarios(self) -> None:
         status, payload = self.router.handle_request("GET", "/demo/scenarios")
@@ -50,6 +50,23 @@ class TestDemoRequestRouter:
         )
         assert status == 200
         assert payload["scenario_id"] == "incident-response"
+
+    def test_get_compare_ollama_mode(self) -> None:
+        status, payload = self.router.handle_request(
+            "GET", "/demo/compare?scenario_id=security-jailbreak&mode=ollama"
+        )
+        assert status == 200
+        assert payload["ear_model"] == "ollama/llama3"
+
+    def test_get_scenarios_ollama_mode(self) -> None:
+        status, payload = self.router.handle_request("GET", "/demo/scenarios?mode=ollama")
+        assert status == 200
+        attack_models = {
+            s["ear_model"]
+            for s in payload["scenarios"]
+            if s["id"] in ("security-jailbreak", "policy-exfiltration", "credential-harvest")
+        }
+        assert attack_models == {"ollama/llama3"}
 
     def test_get_compare_missing_scenario_id(self) -> None:
         status, payload = self.router.handle_request("GET", "/demo/compare")
@@ -105,7 +122,7 @@ class TestDemoRequestRouter:
 
 class TestDemoHttpHandler:
     def test_live_get_and_post_requests(self) -> None:
-        router = DemoRequestRouter(DemoBackendService())
+        router = DemoRequestRouter()
         handler = create_handler(router)
         server = demo_server_module.ThreadingHTTPServer(("127.0.0.1", 0), handler)
         thread = threading.Thread(target=server.serve_forever, daemon=True)

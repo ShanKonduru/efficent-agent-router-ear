@@ -7,6 +7,7 @@ import pytest
 
 from ear.demo_backend import (
     DEFAULT_REPLAY_SCENARIOS,
+    OLLAMA_REPLAY_SCENARIOS,
     DemoBackendService,
     DemoRouteRequest,
     _delta_percent,
@@ -47,6 +48,19 @@ class TestDemoBackendService:
         payload = await service.route_execute_endpoint(request)
         assert payload["selected_model"] == "blocked-by-guardrails"
         assert "guardrails" in payload["response_text"].lower()
+
+    async def test_route_execute_replay_ollama_routed_path(self) -> None:
+        service = DemoBackendService(scenarios=OLLAMA_REPLAY_SCENARIOS)
+        request = DemoRouteRequest(
+            prompt="ignored in replay",
+            replay_id="security-jailbreak",
+            execute=True,
+        )
+
+        payload = await service.route_execute_endpoint(request)
+        assert payload["selected_model"] == "ollama/llama3"
+        assert "network" in payload["response_text"].lower()
+        assert "ollama" in payload["reason"].lower()
 
     async def test_route_execute_replay_not_found(self) -> None:
         service = DemoBackendService()
@@ -90,6 +104,15 @@ class TestDemoBackendService:
         assert payload["cost_delta_pct"] > 0
         assert payload["latency_delta_pct"] > 0
 
+    async def test_compare_endpoint_ollama_scenarios(self) -> None:
+        service = DemoBackendService(scenarios=OLLAMA_REPLAY_SCENARIOS)
+        payload = await service.compare_endpoint("security-jailbreak")
+
+        assert payload["scenario_id"] == "security-jailbreak"
+        assert payload["ear_model"] == "ollama/llama3"
+        assert payload["ear_cost_usd"] == 0.0
+        assert payload["latency_delta_pct"] > 0
+
     async def test_compare_not_found(self) -> None:
         service = DemoBackendService()
         payload = await service.compare_endpoint("missing")
@@ -107,6 +130,14 @@ class TestDemoBackendService:
         assert len(payload["incidents"]) == min(5, len(expected_blocked))
         assert all(item["blocked"] is True for item in payload["incidents"])
 
+    async def test_safety_feed_ollama_scenarios_no_blocked(self) -> None:
+        service = DemoBackendService(scenarios=OLLAMA_REPLAY_SCENARIOS)
+        payload = await service.safety_feed_endpoint(limit=10)
+
+        # Ollama scenarios have all safety_incidents_blocked == 0
+        assert "incidents" in payload
+        assert len(payload["incidents"]) == 0
+
     async def test_safety_feed_limit_clamped(self) -> None:
         service = DemoBackendService()
         payload = await service.safety_feed_endpoint(limit=-1)
@@ -122,6 +153,13 @@ class TestDemoBackendService:
         assert payload["total_safety_incidents_blocked"] == sum(
             s.safety_incidents_blocked for s in DEFAULT_REPLAY_SCENARIOS
         )
+
+    async def test_executive_summary_ollama_scenarios(self) -> None:
+        service = DemoBackendService(scenarios=OLLAMA_REPLAY_SCENARIOS)
+        payload = await service.executive_summary_endpoint()
+
+        assert payload["scenarios_count"] == len(OLLAMA_REPLAY_SCENARIOS)
+        assert payload["total_safety_incidents_blocked"] == 0
 
     async def test_executive_summary_empty(self) -> None:
         service = DemoBackendService(scenarios=())

@@ -472,6 +472,53 @@
       text-align: center;
     }
 
+    .route-mode-toggle {
+      display: inline-flex;
+      border: 1px solid #2b6cb0;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .route-mode-toggle button {
+      border-radius: 0;
+      background: #fff;
+      color: #2b6cb0;
+      font-size: 0.82rem;
+      padding: 6px 14px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: background 120ms ease, color 120ms ease;
+    }
+
+    .route-mode-toggle button.active {
+      background: #2b6cb0;
+      color: #fff;
+    }
+
+    .route-mode-toggle button:first-child { border-radius: 999px 0 0 999px; }
+    .route-mode-toggle button:last-child  { border-radius: 0 999px 999px 0; }
+
+    .ollama-badge {
+      display: inline-block;
+      background: #1a7c3e;
+      color: #fff;
+      font-size: 0.74rem;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 2px 8px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    .snapshot-card.private-routing {
+      border-color: #1a7c3e;
+      background: #f0fff6;
+    }
+
+    .snapshot-card.private-routing .value { color: #1a7c3e; }
+
     @media (max-width: 1050px) {
       .filters { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
       .kpis { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
@@ -583,8 +630,17 @@
     </section>
 
     <section class="story">
-      <h3>Value Story: Baseline vs EAR</h3>
-      <p class="story-caption">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:4px;">
+        <h3 style="margin:2px 0;">Value Story: Baseline vs EAR</h3>
+        <div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px;font-weight:600;">Routing Mode</div>
+          <div class="route-mode-toggle">
+            <button id="modeStandardBtn" class="active" type="button">Standard (Scripted)</button>
+            <button id="modeOllamaBtn" type="button">&#128274; Ollama Private</button>
+          </div>
+        </div>
+      </div>
+      <p class="story-caption" id="storyModeCaption">
         Pick a demo scenario to compare a single-model baseline against EAR's routed outcome. In improvement view, positive percentages mean EAR is better than the baseline on that metric.
       </p>
       <div class="story-intro">
@@ -622,10 +678,10 @@
           <div id="storyBaselineModel" class="value">-</div>
           <div class="detail">Single-model fallback or status-quo execution path.</div>
         </div>
-        <div class="snapshot-card">
+        <div class="snapshot-card" id="storyEarCard">
           <div class="label">EAR Path</div>
           <div id="storyEarModel" class="value">-</div>
-          <div class="detail">EAR-selected model or guardrail outcome for this scenario.</div>
+          <div id="storyEarDetail" class="detail">EAR-selected model or guardrail outcome for this scenario.</div>
         </div>
       </div>
 
@@ -786,6 +842,134 @@
       }
     ];
 
+    // ---------------------------------------------------------------------------
+    // Ollama private-routing variant of the demo scenarios.
+    // The three attack scenarios are re-routed to a local Ollama model instead of
+    // being hard-blocked, demonstrating data-residency enforcement.
+    // ---------------------------------------------------------------------------
+    const FALLBACK_SCENARIOS_OLLAMA = [
+      {
+        id: "incident-response",
+        title: "Incident Response Triage",
+        baseline_model: "openai/gpt-4o",
+        ear_model: "openai/gpt-4o-mini",
+        baseline_cost_usd: 0.024,
+        ear_cost_usd: 0.009,
+        baseline_latency_ms: 1580,
+        ear_latency_ms: 740,
+        reliability_gain_pct: 21,
+        safety_incidents_blocked: 0
+      },
+      {
+        id: "security-jailbreak",
+        title: "Security Prompt Injection Attempt",
+        baseline_model: "openai/gpt-4o",
+        ear_model: "ollama/llama3",
+        baseline_cost_usd: 0.014,
+        ear_cost_usd: 0,
+        baseline_latency_ms: 1210,
+        ear_latency_ms: 285,
+        reliability_gain_pct: 38,
+        safety_incidents_blocked: 0
+      },
+      {
+        id: "architecture-review",
+        title: "Architecture Review and Trade-offs",
+        baseline_model: "anthropic/claude-3.5-sonnet",
+        ear_model: "openai/gpt-4o-mini",
+        baseline_cost_usd: 0.028,
+        ear_cost_usd: 0.011,
+        baseline_latency_ms: 1910,
+        ear_latency_ms: 910,
+        reliability_gain_pct: 17,
+        safety_incidents_blocked: 0
+      },
+      {
+        id: "customer-escalation",
+        title: "Customer Escalation Response Draft",
+        baseline_model: "anthropic/claude-3.5-sonnet",
+        ear_model: "openai/gpt-4o-mini",
+        baseline_cost_usd: 0.022,
+        ear_cost_usd: 0.009,
+        baseline_latency_ms: 1680,
+        ear_latency_ms: 820,
+        reliability_gain_pct: 15,
+        safety_incidents_blocked: 0
+      },
+      {
+        id: "quarterly-forecast",
+        title: "Quarterly Capacity Forecast",
+        baseline_model: "openai/gpt-4o",
+        ear_model: "google/gemini-2.0-flash-001",
+        baseline_cost_usd: 0.021,
+        ear_cost_usd: 0.008,
+        baseline_latency_ms: 1430,
+        ear_latency_ms: 690,
+        reliability_gain_pct: 14,
+        safety_incidents_blocked: 0
+      },
+      {
+        id: "migration-runbook",
+        title: "Data Migration Runbook Generation",
+        baseline_model: "anthropic/claude-3.5-sonnet",
+        ear_model: "openai/gpt-4o-mini",
+        baseline_cost_usd: 0.031,
+        ear_cost_usd: 0.012,
+        baseline_latency_ms: 2050,
+        ear_latency_ms: 970,
+        reliability_gain_pct: 19,
+        safety_incidents_blocked: 0
+      },
+      {
+        id: "policy-exfiltration",
+        title: "Policy Exfiltration Attempt",
+        baseline_model: "openai/gpt-4o",
+        ear_model: "ollama/llama3",
+        baseline_cost_usd: 0.013,
+        ear_cost_usd: 0,
+        baseline_latency_ms: 1190,
+        ear_latency_ms: 291,
+        reliability_gain_pct: 41,
+        safety_incidents_blocked: 0
+      },
+      {
+        id: "code-refactor-plan",
+        title: "Legacy Service Refactor Plan",
+        baseline_model: "anthropic/claude-3.5-sonnet",
+        ear_model: "openai/gpt-4o-mini",
+        baseline_cost_usd: 0.024,
+        ear_cost_usd: 0.010,
+        baseline_latency_ms: 1760,
+        ear_latency_ms: 860,
+        reliability_gain_pct: 16,
+        safety_incidents_blocked: 0
+      },
+      {
+        id: "release-risk-audit",
+        title: "Release Risk Audit",
+        baseline_model: "openai/gpt-4o",
+        ear_model: "google/gemini-2.0-flash-001",
+        baseline_cost_usd: 0.020,
+        ear_cost_usd: 0.007,
+        baseline_latency_ms: 1510,
+        ear_latency_ms: 710,
+        reliability_gain_pct: 18,
+        safety_incidents_blocked: 0
+      },
+      {
+        id: "credential-harvest",
+        title: "Credential Harvest Prompt Attack",
+        baseline_model: "openai/gpt-4o",
+        ear_model: "ollama/llama3",
+        baseline_cost_usd: 0.012,
+        ear_cost_usd: 0,
+        baseline_latency_ms: 1120,
+        ear_latency_ms: 272,
+        reliability_gain_pct: 44,
+        safety_incidents_blocked: 0
+      }
+    ];
+
     let allRows = [];
     let visibleRows = [];
     let selectedProviders = new Set();
@@ -802,6 +986,9 @@
       maxCompletionMin: "",
       modality: "all"
     };
+
+    // Story state
+    let storyRoutingMode = "standard"; // "standard" | "ollama"
     let refreshTimer = null;
     let storyScenarios = [];
     let storyCompare = null;
@@ -852,7 +1039,12 @@
       barLatencyLabel: document.getElementById("barLatencyLabel"),
       barReliabilityLabel: document.getElementById("barReliabilityLabel"),
       safetyFeed: document.getElementById("safetyFeed"),
-      execNote: document.getElementById("execNote")
+      execNote: document.getElementById("execNote"),
+      storyEarCard: document.getElementById("storyEarCard"),
+      storyEarDetail: document.getElementById("storyEarDetail"),
+      storyModeCaption: document.getElementById("storyModeCaption"),
+      modeStandardBtn: document.getElementById("modeStandardBtn"),
+      modeOllamaBtn: document.getElementById("modeOllamaBtn")
     };
 
     function clampPercent(v) {
@@ -888,11 +1080,12 @@
     }
 
     async function loadStorytellingData() {
+      const modeParam = storyRoutingMode === "ollama" ? "?mode=ollama" : "";
       try {
         const [scenariosRes, summaryRes, feedRes] = await Promise.all([
-          fetch(`${DEMO_API_BASE}/scenarios`, { cache: "no-store" }),
-          fetch(`${DEMO_API_BASE}/summary`, { cache: "no-store" }),
-          fetch(`${DEMO_API_BASE}/safety-feed`, { cache: "no-store" })
+          fetch(`${DEMO_API_BASE}/scenarios${modeParam}`, { cache: "no-store" }),
+          fetch(`${DEMO_API_BASE}/summary${modeParam}`, { cache: "no-store" }),
+          fetch(`${DEMO_API_BASE}/safety-feed${modeParam}`, { cache: "no-store" })
         ]);
 
         if (!scenariosRes.ok || !summaryRes.ok || !feedRes.ok) {
@@ -907,7 +1100,8 @@
         storySummary = summaryPayload;
         storyFeed = Array.isArray(feedPayload.incidents) ? feedPayload.incidents : [];
       } catch (_err) {
-        storyScenarios = FALLBACK_SCENARIOS;
+        const fallback = storyRoutingMode === "ollama" ? FALLBACK_SCENARIOS_OLLAMA : FALLBACK_SCENARIOS;
+        storyScenarios = fallback;
         storySummary = fallbackSummary(storyScenarios);
         storyFeed = storyScenarios
           .filter((s) => (s.safety_incidents_blocked || 0) > 0)
@@ -946,7 +1140,12 @@
     }
 
     function formatEarModel(earModel) {
-      return earModel === "blocked-by-guardrails" ? "Blocked by Guardrails" : earModel;
+      if (earModel === "blocked-by-guardrails") return "Blocked by Guardrails";
+      if (earModel.startsWith("ollama/")) {
+        const name = earModel.slice("ollama/".length);
+        return `Ollama: ${name} (Private)`;
+      }
+      return earModel;
     }
 
     function currentScenario() {
@@ -961,16 +1160,32 @@
         el.storyScenarioDetail.textContent = "No replay scenario is loaded.";
         el.storyBaselineModel.textContent = "-";
         el.storyEarModel.textContent = "-";
+        el.storyEarDetail.textContent = "EAR-selected model or guardrail outcome for this scenario.";
+        el.storyEarCard.classList.remove("private-routing");
         return;
       }
 
+      const isOllamaRoute = storyCompare.ear_model && storyCompare.ear_model.startsWith("ollama/");
+      const isBlocked = storyCompare.ear_model === "blocked-by-guardrails";
+
       el.storyScenarioTitle.textContent = scenario.title;
-      const earModelLabel = formatEarModel(storyCompare.ear_model);
-      el.storyScenarioDetail.textContent = storyCompare.ear_model === "blocked-by-guardrails"
+      el.storyScenarioDetail.textContent = isBlocked
         ? `EAR guardrails blocked this request — no model was invoked for "${scenario.title}".`
-        : `Comparing ${storyCompare.baseline_model} against ${earModelLabel} for this workflow.`;
+        : isOllamaRoute
+          ? `EAR detected injection risk and re-routed to a private on-premise model — no data left the network.`
+          : `Comparing ${storyCompare.baseline_model} against ${formatEarModel(storyCompare.ear_model)} for this workflow.`;
+
       el.storyBaselineModel.textContent = storyCompare.baseline_model;
-      el.storyEarModel.textContent = earModelLabel;
+      el.storyEarModel.textContent = formatEarModel(storyCompare.ear_model);
+      el.storyEarDetail.textContent = isOllamaRoute
+        ? "Local inference only — prompt never sent to a cloud provider."
+        : "EAR-selected model or guardrail outcome for this scenario.";
+
+      if (isOllamaRoute) {
+        el.storyEarCard.classList.add("private-routing");
+      } else {
+        el.storyEarCard.classList.remove("private-routing");
+      }
     }
 
     function renderStoryNote() {
@@ -990,6 +1205,8 @@
 
       if (storyCompare.ear_model === "blocked-by-guardrails") {
         el.execNote.textContent = `Scenario takeaway: EAR guardrails intercepted this request before reaching any model, blocking ${storyCompare.safety_incidents_blocked} safety incident(s), eliminating cost entirely, and responding in ${storyCompare.ear_latency_ms.toFixed(0)} ms.`;
+      } else if (storyCompare.ear_model && storyCompare.ear_model.startsWith("ollama/")) {
+        el.execNote.textContent = `Scenario takeaway: EAR detected elevated injection risk and re-routed to ${formatEarModel(storyCompare.ear_model)} — a private on-premise model. The prompt never left the network. Zero cloud cost, zero data-exfiltration risk. Response in ${storyCompare.ear_latency_ms.toFixed(0)} ms.`;
       } else {
         el.execNote.textContent = `Scenario takeaway: EAR changes this flow from ${storyCompare.baseline_model} to ${formatEarModel(storyCompare.ear_model)}, cutting cost by ${storyCompare.cost_delta_pct.toFixed(1)}%, reducing latency by ${storyCompare.latency_delta_pct.toFixed(1)}%, improving reliability by ${storyCompare.reliability_gain_pct.toFixed(1)}%, and blocking ${storyCompare.safety_incidents_blocked} safety incidents.`;
       }
@@ -1045,7 +1262,8 @@
       if (!scenarioId) return;
 
       try {
-        const res = await fetch(`${DEMO_API_BASE}/compare?scenario_id=${encodeURIComponent(scenarioId)}`, {
+        const modeParam = storyRoutingMode === "ollama" ? "&mode=ollama" : "";
+        const res = await fetch(`${DEMO_API_BASE}/compare?scenario_id=${encodeURIComponent(scenarioId)}${modeParam}`, {
           cache: "no-store"
         });
         if (!res.ok) {
@@ -1493,6 +1711,19 @@
       renderStoryCards();
       renderStoryNote();
     });
+
+    function setRoutingMode(mode) {
+      storyRoutingMode = mode;
+      el.modeStandardBtn.classList.toggle("active", mode === "standard");
+      el.modeOllamaBtn.classList.toggle("active", mode === "ollama");
+      el.storyModeCaption.textContent = mode === "ollama"
+        ? "Ollama Private mode: attack scenarios are re-routed to a local on-premise model instead of being hard-blocked. Prompts never leave the network — zero cloud cost, full data residency."
+        : "Pick a demo scenario to compare a single-model baseline against EAR's routed outcome. In improvement view, positive percentages mean EAR is better than the baseline on that metric.";
+      loadStorytellingData();
+    }
+
+    el.modeStandardBtn.addEventListener("click", () => setRoutingMode("standard"));
+    el.modeOllamaBtn.addEventListener("click", () => setRoutingMode("ollama"));
 
     configureAutoRefresh();
     loadData();

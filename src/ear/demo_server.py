@@ -8,17 +8,27 @@ from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import parse_qs, urlparse
 
-from ear.demo_backend import DemoBackendService, DemoRouteRequest
+from ear.demo_backend import DemoBackendService, DemoRouteRequest, OLLAMA_REPLAY_SCENARIOS
 
 
 _DEMO_HTML_PATH = Path(__file__).resolve().parents[2] / "docs" / "llm_explorer.html"
+
+_SERVICES: dict[str, DemoBackendService] = {
+    "standard": DemoBackendService(),
+    "ollama": DemoBackendService(scenarios=OLLAMA_REPLAY_SCENARIOS),
+}
 
 
 class DemoRequestRouter:
     """Pure request router for demo HTTP endpoints."""
 
-    def __init__(self, service: DemoBackendService | None = None) -> None:
-        self._service = service or DemoBackendService()
+    def __init__(self, services: dict[str, DemoBackendService] | None = None) -> None:
+        self._services = services if services is not None else dict(_SERVICES)
+
+    def _service_for(self, query: dict) -> DemoBackendService:
+        """Return the service instance matching the ?mode= query param."""
+        mode = query.get("mode", ["standard"])[0]
+        return self._services.get(mode, self._services["standard"])
 
     def handle_request(
         self,
@@ -32,20 +42,20 @@ class DemoRequestRouter:
         query = parse_qs(parsed.query)
 
         if method == "GET" and route == "/demo/scenarios":
-            return 200, asyncio.run(self._service.list_scenarios_endpoint())
+            return 200, asyncio.run(self._service_for(query).list_scenarios_endpoint())
 
         if method == "GET" and route == "/demo/summary":
-            return 200, asyncio.run(self._service.executive_summary_endpoint())
+            return 200, asyncio.run(self._service_for(query).executive_summary_endpoint())
 
         if method == "GET" and route == "/demo/safety-feed":
             limit = _parse_int(query.get("limit", ["10"])[0], default=10)
-            return 200, asyncio.run(self._service.safety_feed_endpoint(limit=limit))
+            return 200, asyncio.run(self._service_for(query).safety_feed_endpoint(limit=limit))
 
         if method == "GET" and route == "/demo/compare":
             scenario_id = query.get("scenario_id", [""])[0]
             if not scenario_id:
                 return 400, {"error": "missing_scenario_id"}
-            payload = asyncio.run(self._service.compare_endpoint(scenario_id))
+            payload = asyncio.run(self._service_for(query).compare_endpoint(scenario_id))
             return (404 if payload.get("error") == "scenario_not_found" else 200), payload
 
         if method == "POST" and route == "/demo/route-execute":
@@ -60,7 +70,7 @@ class DemoRequestRouter:
             except Exception as exc:
                 return 400, {"error": "invalid_request", "reason": str(exc)}
 
-            payload = asyncio.run(self._service.route_execute_endpoint(request))
+            payload = asyncio.run(self._service_for(query).route_execute_endpoint(request))
             return (404 if payload.get("error") == "scenario_not_found" else 200), payload
 
         return 404, {"error": "not_found", "path": route, "method": method}
