@@ -53,6 +53,19 @@ export default function App() {
     return result.requested_model !== result.selected_model;
   }, [result]);
 
+  const responseMessage = useMemo(() => {
+    if (!result) {
+      return "";
+    }
+    if (result.executed === false) {
+      return "Route-only mode: no model execution was requested.";
+    }
+    if (result.response_text) {
+      return result.response_text;
+    }
+    return "Model execution completed, but the provider returned an empty response.";
+  }, [result]);
+
   function appendLog(message, kind = "info") {
     setActivityLog((previous) => [makeLogEntry(message, kind), ...previous].slice(0, 16));
   }
@@ -405,7 +418,7 @@ export default function App() {
 
               <article className="detail-card response-card">
                 <h3>Model Response</h3>
-                <pre>{result.response_text || "Route-only mode: no model execution was requested."}</pre>
+                <pre>{responseMessage}</pre>
               </article>
             </>
           )}

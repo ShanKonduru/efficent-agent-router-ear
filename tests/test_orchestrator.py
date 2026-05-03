@@ -66,6 +66,15 @@ def _pii_guardrail_result() -> GuardrailResult:
     )
 
 
+def _medical_phi_guardrail_result() -> GuardrailResult:
+    return GuardrailResult(
+        passed=True,
+        pii_detected=True,
+        reason="patient medical details found",
+        reason_codes=["PII_DETECTED", "PHI_MEDICAL_CONTEXT"],
+    )
+
+
 def _routing_decision(primary: str = "openai/gpt-4o-mini") -> RoutingDecision:
     return RoutingDecision(
         selected_model=primary,
@@ -438,6 +447,48 @@ class TestExecutionOrchestrator:
         assert "ollama/llama3" in called_ids
         assert "openai/gpt-4o-mini" in called_ids
         assert "mistral/mistral-7b" not in called_ids
+
+    async def test_medical_phi_detected_routes_only_to_ollama_when_available(self) -> None:
+        ollama_model = LLMSpec(id="ollama/llama3", name="llama3", context_length=8_192, trusted=True)
+        vetted_model = LLMSpec(id="openai/gpt-4o-mini", name="mini", context_length=16_000)
+        models = [ollama_model, vetted_model]
+
+        decision = _routing_decision("ollama/llama3")
+        fb_result = _fallback_result("ollama/llama3")
+
+        orch = _make_orchestrator(
+            guardrail_result=_medical_phi_guardrail_result(),
+            decision=decision,
+            pipeline_result=fb_result,
+        )
+
+        request = RoutingRequest(
+            prompt="Using this patient details can you confirm if this patient has any chronic deceases.",
+            budget_priority=BudgetPriority.MEDIUM,
+        )
+        await orch.run(request, models)
+
+        called_models: list[LLMSpec] = orch._router.decide.call_args[0][1]  # type: ignore[attr-defined]
+        assert [m.id for m in called_models] == ["ollama/llama3"]
+
+    async def test_medical_phi_detected_raises_when_no_ollama_available(self) -> None:
+        models = [LLMSpec(id="openai/gpt-4o-mini", name="mini", context_length=16_000)]
+
+        orch = _make_orchestrator(
+            guardrail_result=_medical_phi_guardrail_result(),
+            decision=_routing_decision(),
+            pipeline_result=_fallback_result(),
+        )
+
+        request = RoutingRequest(
+            prompt="using this patient details can you confirm if this patient has any chronic deceases.",
+            budget_priority=BudgetPriority.MEDIUM,
+        )
+
+        with pytest.raises(GuardrailsBlockedError) as exc_info:
+            await orch.run(request, models)
+
+        assert "local Ollama" in exc_info.value.reason
 
     async def test_pii_detected_falls_back_to_all_models_when_no_trusted_available(self) -> None:
         """When PII detected but no trusted providers exist, all models are used as fallback."""

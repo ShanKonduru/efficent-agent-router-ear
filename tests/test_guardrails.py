@@ -76,6 +76,21 @@ class TestGuardrailsCheckerInit:
         checker = GuardrailsChecker()
         assert checker._detect_pii("Contact me at test@example.com")
 
+    def test_detect_patient_medical_details_as_phi(self) -> None:
+        checker = GuardrailsChecker()
+        prompt = "Using this patient details can you confirm if this patient has any chronic deceases."
+
+        result = checker.check(prompt)
+
+        assert result.passed is True
+        assert result.pii_detected is True
+        assert "PHI_MEDICAL_CONTEXT" in result.reason_codes
+
+    def test_generic_medical_question_is_not_phi(self) -> None:
+        checker = GuardrailsChecker()
+
+        assert not checker._detect_pii("What is a chronic disease?")
+
     def test_detect_pii_false(self) -> None:
         checker = GuardrailsChecker()
         assert not checker._detect_pii("no personal data here")

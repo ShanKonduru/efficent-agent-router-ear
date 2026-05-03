@@ -74,6 +74,22 @@ PII_PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b"),  # Phone (US)
 ]
 
+_MEDICAL_CONTEXT_PATTERNS: list[re.Pattern[str]] = [
+    re.compile(r"\bpatient\b", re.IGNORECASE),
+    re.compile(r"\b(?:medical|clinical|health)\s+(?:details?|records?|history|information|notes?)\b", re.IGNORECASE),
+    re.compile(r"\b(?:medical|clinical|health)\s+profile\b", re.IGNORECASE),
+]
+
+_MEDICAL_SENSITIVE_PATTERNS: list[re.Pattern[str]] = [
+    re.compile(r"\bchronic\s+(?:diseases?|deceases|conditions?)\b", re.IGNORECASE),
+    re.compile(r"\bdiagnos(?:is|es)\b", re.IGNORECASE),
+    re.compile(r"\bmedications?\b", re.IGNORECASE),
+    re.compile(r"\btreatments?\b", re.IGNORECASE),
+    re.compile(r"\bsymptoms?\b", re.IGNORECASE),
+    re.compile(r"\bmedical\s+history\b", re.IGNORECASE),
+    re.compile(r"\blab\s+results?\b", re.IGNORECASE),
+]
+
 
 class GuardrailsChecker:
     """Runs safety prechecks on a prompt before it is forwarded to any model."""
@@ -83,6 +99,12 @@ class GuardrailsChecker:
         injection_risk_score, injection_reason_codes = self._score_semantic_injection(prompt)
         injection_detected = injection_risk_score >= INJECTION_ELEVATED_THRESHOLD
         pii_detected = self._detect_pii(prompt)
+        medical_phi_detected = self._detect_medical_phi(prompt)
+        pii_reason_codes = ["PII_DETECTED"]
+        pii_reason = "PII detected; restrict routing to vetted providers."
+        if medical_phi_detected:
+            pii_reason_codes.append("PHI_MEDICAL_CONTEXT")
+            pii_reason = "Patient medical details detected; route to local or vetted private providers."
 
         if injection_risk_score >= INJECTION_BLOCK_THRESHOLD:
             return GuardrailResult(
@@ -109,8 +131,8 @@ class GuardrailsChecker:
                 passed=True,
                 injection_detected=False,
                 pii_detected=True,
-                reason="PII detected; restrict routing to vetted providers.",
-                reason_codes=["PII_DETECTED"],
+                reason=pii_reason,
+                reason_codes=pii_reason_codes,
                 risk_score=injection_risk_score,
             )
 
@@ -153,7 +175,14 @@ class GuardrailsChecker:
 
     def _detect_pii(self, prompt: str) -> bool:
         """Return True if any PII pattern matches the prompt."""
-        return any(pattern.search(prompt) is not None for pattern in PII_PATTERNS)
+        return any(pattern.search(prompt) is not None for pattern in PII_PATTERNS) or self._detect_medical_phi(prompt)
+
+    def _detect_medical_phi(self, prompt: str) -> bool:
+        """Return True for prompts that appear to contain patient medical details."""
+        has_context = any(pattern.search(prompt) is not None for pattern in _MEDICAL_CONTEXT_PATTERNS)
+        if not has_context:
+            return False
+        return any(pattern.search(prompt) is not None for pattern in _MEDICAL_SENSITIVE_PATTERNS)
 
     def filter_candidates_for_pii(
         self,

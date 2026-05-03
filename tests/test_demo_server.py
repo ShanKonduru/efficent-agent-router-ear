@@ -55,6 +55,7 @@ class _FakeLiveService:
             "budget_priority": request.budget_priority.value,
             "requested_model": request.preferred_model,
             "requested_model_applied": False,
+            "executed": True,
             "response_text": "live answer",
             "prompt_tokens": 10,
             "completion_tokens": 20,
@@ -323,6 +324,7 @@ class TestLiveBackendService:
             )
         )
         assert payload["selected_model"] == "ollama/llama3"
+        assert payload["executed"] is True
         assert payload["provider"] == "ollama"
         assert payload["requested_model"] == "openai/gpt-4o-mini"
         assert payload["requested_model_applied"] is False
@@ -363,6 +365,7 @@ class TestLiveBackendService:
             demo_server_module.LiveRouteRequest(prompt="hello", execute=False)
         )
         assert payload["selected_model"] == "openai/gpt-4o-mini"
+        assert payload["executed"] is False
         assert payload["response_text"] == ""
 
 

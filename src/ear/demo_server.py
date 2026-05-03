@@ -148,6 +148,7 @@ class LiveBackendService:
                 "requested_model_applied": bool(
                     request.preferred_model and request.preferred_model == selected_model
                 ),
+                "executed": True,
                 "response_text": result.response.content,
                 "prompt_tokens": result.response.prompt_tokens,
                 "completion_tokens": result.response.completion_tokens,
@@ -185,6 +186,7 @@ class LiveBackendService:
             "requested_model_applied": bool(
                 request.preferred_model and request.preferred_model == selected_model
             ),
+            "executed": False,
             "response_text": "",
             "prompt_tokens": 0,
             "completion_tokens": 0,

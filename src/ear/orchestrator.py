@@ -127,7 +127,18 @@ class ExecutionOrchestrator:
                 if not m.id.startswith(f"{OLLAMA_PROVIDER}/")
                 and m.id.split("/")[0] in PII_VETTED_PROVIDERS
             ]
-            candidate_models = ollama_models + vetted_cloud
+            if "PHI_MEDICAL_CONTEXT" in guardrail_result.reason_codes:
+                if not ollama_models:
+                    raise GuardrailsBlockedError(
+                        "Patient medical details require local Ollama, but no local model is available."
+                    )
+                candidate_models = ollama_models
+                logger.info(
+                    "Medical PHI detected; routing to local Ollama models only (%d available).",
+                    len(ollama_models),
+                )
+            else:
+                candidate_models = ollama_models + vetted_cloud
             if not candidate_models:
                 logger.warning("PII detected but no trusted models available; using all models.")
                 candidate_models = list(models)
