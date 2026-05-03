@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import time
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -387,3 +387,18 @@ class TestOllamaRegistry:
         registry = OllamaRegistry(cfg)
 
         assert registry.provider_name == "ollama"
+
+    def test_parse_model_returns_none_when_llmspec_raises(self, config, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+        """_parse_model() must return None and not propagate when LLMSpec() raises."""
+        import ear.registry as registry_module
+        from ear.config import EARConfig
+
+        cfg = EARConfig()  # type: ignore[call-arg]
+        registry = OllamaRegistry(cfg)
+
+        # Force LLMSpec constructor to raise so the except branch is exercised.
+        monkeypatch.setattr(registry_module, "LLMSpec", MagicMock(side_effect=ValueError("bad spec")))
+
+        result = registry._parse_model({"name": "llama3"})
+
+        assert result is None

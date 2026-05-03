@@ -457,3 +457,18 @@ class TestCliExecuteFlag:
 
         assert result.exit_code == 0
         assert "(none)" in result.stdout
+
+    def test_main_inserts_route_for_bare_prompt(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """main() should prepend 'route' when the first arg is not a known subcommand."""
+        inserted: list[list[str]] = []
+
+        def _fake_app() -> None:
+            inserted.append(list(sys.argv))
+
+        monkeypatch.setattr(sys, "argv", ["ear", "What is TCP?"])
+        monkeypatch.setattr(cli_module, "app", _fake_app)
+
+        cli_module.main()
+
+        assert inserted[0][1] == "route"
+        assert inserted[0][2] == "What is TCP?"
