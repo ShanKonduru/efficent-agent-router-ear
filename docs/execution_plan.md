@@ -22,19 +22,23 @@
 13. Live Execution Canary Validation (`[ ]`)
 14. Benchmark Harness Execution and Results (`[ ]`)
 15. Architecture Decision Records Backfill (`[ ]`)
-16. Ollama Private Provider Integration (`[ ]`)
+16. Ollama Private Provider Integration (`[x]`)
+17. Live React Web Console (`[x]`)
+18. CLI Aliases and UX Polish (`[x]`)
 
 ## Recommended Execution Order (Current State)
 1. E10 F9: implement true route-and-execute runtime (LiteLLM + fallback + real telemetry) `[x]`
 2. E10 F10: add semantic intent/injection intelligence and benchmark harness `[x]`
 3. E11 F11: build leadership/investor frontend demo with baseline-vs-EAR value views `[x]`
-4. E12 F12: verify v0.10.3 PyPI release artifacts and synchronize `master` → `main` `[ ]`
-5. E14 F14: run live execution canary against real OpenRouter providers `[ ]`
-6. E17 F17: implement Ollama private provider for safety-routing of sensitive and blocked prompts `[ ]`
-7. E13 F13: wire `DemoBackendService` API endpoints to `llm_explorer.html` frontend `[ ]`
-8. E15 F15: execute benchmark harness and publish precision/recall results `[ ]`
-9. E16 F16: backfill ADRs for LiteLLM, guardrails, MCP transport, and demo replay `[ ]`
-10. Continue release governance, branch synchronization, and security posture monitoring
+4. E17 F17: implement Ollama private provider for safety-routing of sensitive and blocked prompts `[x]`
+5. E18 F18: add live React/Vite routing console and one-click launcher scripts `[x]`
+6. E19 F19: add CLI command aliases and bare-`ear` default routing invocation `[x]`
+7. E12 F12: verify PyPI release artifacts (v0.10.16) and synchronize `master` → `main` `[ ]`
+8. E14 F14: run live execution canary against real OpenRouter providers `[ ]`
+9. E13 F13: wire `DemoBackendService` API endpoints to `llm_explorer.html` frontend `[ ]`
+10. E15 F15: execute benchmark harness and publish precision/recall results `[ ]`
+11. E16 F16: backfill ADRs for LiteLLM, guardrails, MCP transport, and demo replay `[ ]`
+12. Continue release governance, branch synchronization, and security posture monitoring
 
 ## User Stories, Tasks, and Estimates
 
@@ -228,24 +232,48 @@
   - T15.4 Write ADR for demo backend deterministic replay design (1 pt) `[ ]`
 
 ### F17. Ollama Private Provider Integration
-- Story US-17 (13 pts) `[ ]`: As a security owner, I want sensitive and injection-risk prompts routed to a local Ollama model so PII and suspicious inputs never reach cloud providers.
+- Story US-17 (13 pts) `[x]`: As a security owner, I want sensitive and injection-risk prompts routed to a local Ollama model so PII and suspicious inputs never reach cloud providers.
 - Acceptance highlights:
   - Ollama models registered as `ollama/<name>` with `trusted=True` and zero pricing.
   - Guardrail-blocked prompts route to Ollama when available instead of hard-blocking.
   - PII prompts restricted to Ollama and vetted cloud providers only.
   - Blocked prompt + no Ollama still raises `GuardrailsBlockedError` (fail-closed).
   - 100% statement and branch coverage maintained.
+  - Demo routing-mode toggle (Standard / Ollama Private) added to `llm_explorer.html`.
 - Tasks:
-  - T16.1 Add `ear_ollama_base_url` and `ear_ollama_enabled` to `EARConfig` (1 pt) `[ ]`
-  - T16.2 Implement `OllamaRegistry` querying `GET /api/tags` (2 pts) `[ ]`
-  - T16.3 Register `OllamaRegistry` in `RegistryFactory` (1 pt) `[ ]`
-  - T16.4 Implement `OllamaExecutor` calling `POST /api/chat` (2 pts) `[ ]`
-  - T16.5 Implement `CompositeExecutor` dispatching by model ID prefix (1 pt) `[ ]`
-  - T16.6 Add `trusted` field to `LLMSpec` (1 pt) `[ ]`
-  - T16.7 Update `guardrails.py` to include Ollama in `PII_VETTED_PROVIDERS` (1 pt) `[ ]`
-  - T16.8 Update `orchestrator.py` safety routing for Ollama (2 pts) `[ ]`
-  - T16.9 Add tests for `OllamaRegistry`, `OllamaExecutor`, `CompositeExecutor` (2 pts) `[ ]`
-  - T16.10 Add tests for orchestrator Ollama routing paths (3 pts) `[ ]`
+  - T16.1 Add `ear_ollama_base_url` and `ear_ollama_enabled` to `EARConfig` (1 pt) `[x]`
+  - T16.2 Implement `OllamaRegistry` querying `GET /api/tags` (2 pts) `[x]`
+  - T16.3 Register `OllamaRegistry` in `RegistryFactory` (1 pt) `[x]`
+  - T16.4 Implement `OllamaExecutor` calling `POST /api/chat` (2 pts) `[x]`
+  - T16.5 Implement `CompositeExecutor` dispatching by model ID prefix (1 pt) `[x]`
+  - T16.6 Add `trusted` field to `LLMSpec` (1 pt) `[x]`
+  - T16.7 Update `guardrails.py` to include Ollama in `PII_VETTED_PROVIDERS` (1 pt) `[x]`
+  - T16.8 Update `orchestrator.py` safety routing for Ollama (2 pts) `[x]`
+  - T16.9 Add tests for `OllamaRegistry`, `OllamaExecutor`, `CompositeExecutor` (2 pts) `[x]`
+  - T16.10 Add tests for orchestrator Ollama routing paths (3 pts) `[x]`
+
+### F18. Live React Web Console
+- Story US-18 (5 pts) `[x]`: As a developer, I want a live React console that visualizes EAR routing decisions so I can explore and debug model selection in real time.
+- Acceptance highlights:
+  - React/Vite console in `webapp/` connects to local demo server.
+  - One-click launcher scripts (`run_live_webapp.bat/sh`) wait for Vite before opening browser.
+  - Processing progress log panel shows step-by-step routing decisions.
+  - Client disconnects handled gracefully with no server-side noise.
+- Tasks:
+  - T17.1 Create `webapp/` with React + Vite scaffold (2 pts) `[x]`
+  - T17.2 Add `run_live_webapp.bat/sh` launchers with readiness wait (1 pt) `[x]`
+  - T17.3 Add processing progress log to `llm_explorer.html` (1 pt) `[x]`
+  - T17.4 Quiet client disconnect handling on server side (1 pt) `[x]`
+
+### F19. CLI Aliases and UX Polish
+- Story US-19 (2 pts) `[x]`: As a developer, I want short CLI aliases so I can run common EAR commands with fewer keystrokes.
+- Acceptance highlights:
+  - `ear r`, `ear im`, `ear s` are functional aliases for full command names.
+  - Bare `ear` invocation routes with sensible defaults.
+  - 100% branch coverage maintained after alias additions.
+- Tasks:
+  - T18.1 Add short aliases for all CLI commands (1 pt) `[x]`
+  - T18.2 Add default route command for bare `ear` invocation (1 pt) `[x]`
 
 ## Milestones
 
@@ -296,7 +324,7 @@
   - Benchmark precision/recall results documented in `docs/benchmark_results.md`
   - ADRs filed for LiteLLM, guardrails, MCP transport, and demo replay design
 
-### M8. Ollama Private Provider (Target: Week 11–12) `[ ]`
+### M8. Ollama Private Provider (Target: Week 11–12) `[x]`
 - Scope: F17
 - Exit criteria:
   - Ollama registry, executor, and composite dispatcher implemented and tested
@@ -304,10 +332,20 @@
   - Blocked prompts fail-closed when Ollama is unavailable
   - 100% statement and branch coverage maintained across all new code
 
+### M9. React Console and UX Hardening (Target: Week 13) `[x]`
+- Scope: F18, F19
+- Exit criteria:
+  - Live React routing console deployed and launcher scripts working
+  - CLI aliases active for all major commands
+  - Progress log visible in `llm_explorer.html`
+  - Client disconnect handled gracefully
+
 ## Capacity and Sizing Summary
-- Total story points: 100
-- Suggested team capacity assumption: 10 to 14 points/week
-- Estimated timeline: 11 to 12 weeks depending on team size and external API volatility
+- Total story points: 136
+- Completed story points: 122
+- Remaining story points: 14 (E12, E13, E14, E15, E16)
+- Current version: 0.10.16
+- Last updated: 2026-05-03
 
 ## Risk Register
 1. OpenRouter payload changes break parsing
