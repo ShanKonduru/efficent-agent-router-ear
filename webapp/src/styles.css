@@ -318,3 +318,27 @@ button:disabled {
     align-items: start;
   }
 }
+/* Template Questions Dropdown */
+label:has(select[value=""]) {
+  position: relative;
+}
+
+label:has(select[value=""]) select {
+  background: linear-gradient(135deg, #fffef9 0%, #f9f5ed 100%);
+  border: 2px dashed #d8c9aa;
+  font-style: italic;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+label:has(select[value=""]) select:hover {
+  border-color: var(--accent);
+  background: #fffff5;
+}
+
+label:has(select[value=""]) select:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-color: var(--accent);
+}

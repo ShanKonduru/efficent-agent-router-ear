@@ -82,7 +82,7 @@ _MEDICAL_CONTEXT_PATTERNS: list[re.Pattern[str]] = [
 
 _MEDICAL_SENSITIVE_PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"\bchronic\s+(?:diseases?|deceases|conditions?)\b", re.IGNORECASE),
-    re.compile(r"\bdiagnos(?:is|es)\b", re.IGNORECASE),
+    re.compile(r"\bdiagnos(?:is|es|ed|ing)\b", re.IGNORECASE),
     re.compile(r"\bmedications?\b", re.IGNORECASE),
     re.compile(r"\btreatments?\b", re.IGNORECASE),
     re.compile(r"\bsymptoms?\b", re.IGNORECASE),

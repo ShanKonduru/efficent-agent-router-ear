@@ -72,8 +72,12 @@ echo [EAR Live UI] Node.js installation complete.
 
 :run_app
 
+echo [EAR Live UI] Checking for existing processes on ports 8085 and 5173...
+powershell -NoProfile -Command "$ports = @(8085, 5173); foreach($p in $ports) { $conn = Get-NetTCPConnection -LocalPort $p -ErrorAction SilentlyContinue; if($conn) { Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue } }" >nul 2>&1
+timeout /t 2 /nobreak >nul
+
 echo [EAR Live UI] Starting live EAR API on http://127.0.0.1:8085 ...
-start "EAR Live API" python -m ear.cli demo-server --host 127.0.0.1 --port 8085
+start "EAR Live API" cmd /c "python -m ear.cli demo-server --host 127.0.0.1 --port 8085 || (echo. && echo [ERROR] Backend failed to start. Press any key to close... && pause>nul)"
 
 cd /d "%~dp0webapp"
 
@@ -87,7 +91,7 @@ if not exist "node_modules" (
 )
 
 echo [EAR Live UI] Starting React app on http://127.0.0.1:5173 ...
-start "EAR Live Webapp" cmd /c "cd /d %CD% && npm run dev"
+start "EAR Live Webapp" cmd /c "cd /d %CD% && npm run dev || (echo. && echo [ERROR] React app failed to start. Press any key to close... && pause>nul)"
 
 echo [EAR Live UI] Waiting for Vite to become ready...
 set "EAR_WAIT_COUNT=0"

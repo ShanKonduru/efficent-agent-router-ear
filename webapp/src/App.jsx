@@ -2,6 +2,41 @@ import React, { useEffect, useMemo, useState } from "react";
 
 const API_BASE = import.meta.env.VITE_EAR_API_BASE || "";
 
+const TEMPLATE_QUESTIONS = [
+  {
+    category: "General",
+    prompt: "Compare blue-green and canary deployment strategies for a fintech API rollout.",
+  },
+  {
+    category: "General",
+    prompt: "Explain the difference between microservices and monolithic architecture.",
+  },
+  {
+    category: "Coding",
+    prompt: "Write a Python function to validate email addresses using regex.",
+  },
+  {
+    category: "Research",
+    prompt: "What are the latest advancements in quantum computing as of 2026?",
+  },
+  {
+    category: "Local LLM (PII)",
+    prompt: "Analyze this patient data: John Smith, SSN 123-45-6789, diagnosed with diabetes on 2026-04-15.",
+  },
+  {
+    category: "Local LLM (Medical)",
+    prompt: "Review this medical record: Patient ID 98765, blood pressure 140/90, prescribed metformin 500mg.",
+  },
+  {
+    category: "Local LLM (Sensitive)",
+    prompt: "Draft an email about employee performance review for Sarah Johnson, employee ID EMP-2024-1523.",
+  },
+  {
+    category: "Local LLM (Financial)",
+    prompt: "Calculate tax implications for income: $125,000 annual salary, account number 4532-1567-8901-2345.",
+  },
+];
+
 const initialForm = {
   prompt: "",
   taskType: "auto",
@@ -270,6 +305,26 @@ export default function App() {
         <section className="panel prompt-panel">
           <h2>Ask a Question</h2>
           <form onSubmit={onSubmit}>
+            <label>
+              Template Questions (optional)
+              <select
+                value=""
+                onChange={(event) => {
+                  if (event.target.value) {
+                    onChange("prompt", event.target.value);
+                  }
+                }}
+              >
+                <option value="">-- Select a template or type your own --</option>
+                {TEMPLATE_QUESTIONS.map((template, idx) => (
+                  <option value={template.prompt} key={idx}>
+                    [{template.category}] {template.prompt.substring(0, 60)}
+                    {template.prompt.length > 60 ? "..." : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+
             <label>
               Prompt
               <textarea
