@@ -77,6 +77,28 @@ if not exist "node_modules" (
   )
 )
 
-echo [EAR Live UI] Launching React app on http://127.0.0.1:5173 ...
+echo [EAR Live UI] Starting React app on http://127.0.0.1:5173 ...
+start "EAR Live Webapp" cmd /c "cd /d %CD% && npm run dev"
+
+echo [EAR Live UI] Waiting for Vite to become ready...
+set "EAR_WAIT_COUNT=0"
+
+:wait_for_vite
+powershell -NoProfile -Command "try { $r = Invoke-WebRequest 'http://127.0.0.1:5173/' -UseBasicParsing -TimeoutSec 2; exit 0 } catch { exit 1 }" >nul 2>&1
+if not errorlevel 1 goto open_browser
+
+set /a EAR_WAIT_COUNT+=1
+if %EAR_WAIT_COUNT% GEQ 30 (
+  echo [EAR Live UI] Vite did not become ready in time.
+  echo [EAR Live UI] Check the 'EAR Live Webapp' window for build errors.
+  exit /b 1
+)
+
+timeout /t 1 /nobreak >nul
+goto wait_for_vite
+
+:open_browser
+echo [EAR Live UI] Opening React app in your browser...
 start "" "http://127.0.0.1:5173"
-npm run dev
+echo [EAR Live UI] Ready.
+exit /b 0
