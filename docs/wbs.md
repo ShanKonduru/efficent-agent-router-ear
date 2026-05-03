@@ -39,7 +39,8 @@ Track delivery using the status column for every item.
 | E17 | Ollama Private Provider Integration | P1 | 13 | M8 | `[x]` |
 | E18 | Live React Web Console | P2 | 5 | M9 | `[x]` |
 | E19 | CLI Aliases and UX Polish | P2 | 2 | M9 | `[x]` |
-| | **Total** | | **136** | | |
+| E20 | Judge-Based Intelligent Routing with Local LLM | P1 | 8 | M10 | `[x]` |
+| | **Total** | | **144** | | |
 
 ---
 
@@ -56,6 +57,7 @@ Track delivery using the status column for every item.
 | M7 — Post-Launch Hardening | Week 9–10 | E12, E13, E14, E15, E16 | Release verified on PyPI; live demo backend wired; canary executed; benchmarks documented; ADRs filed | `[ ]` |
 | M8 — Ollama Private Provider | Week 11–12 | E17 | Sensitive and injection-risk prompts routed to local Ollama; PII never sent to cloud; full test coverage maintained | `[x]` |
 | M9 — React Console and UX Hardening | Week 13 | E18, E19 | Live React routing console deployed; CLI aliases active; Vite launcher scripts working | `[x]` |
+| M10 — Judge-Based Intelligent Routing | Week 14 | E20 | Local LLM judge analyzes prompts for complexity/privacy/quality; intelligent local vs cloud routing decisions; 100% test coverage maintained | `[x]` |
 
 ---
 
@@ -584,6 +586,39 @@ Track delivery using the status column for every item.
 
 ---
 
+## E20 — Judge-Based Intelligent Routing with Local LLM
+
+> Use a local Ollama LLM as an agentic judge to analyze prompts and make intelligent routing decisions between local and cloud models based on complexity, privacy sensitivity, and quality requirements.
+
+**Priority:** P1 · **Total Points:** 8 · **Status:** `[x]` Completed 2026-05-03
+
+### Feature F20 — Judge Routing Classifier
+
+| ID | User Story | Priority | Points | Status |
+| --- | --- | --- | --- | --- |
+| US-20 | As a platform owner, I want intelligent judge-based routing that analyzes prompt characteristics to determine optimal local vs cloud execution so routing decisions are context-aware and privacy-preserving. | P1 | 8 | `[x]` |
+
+**Acceptance Criteria**
+- Given `EAR_JUDGE_ENABLED=true` and Ollama is running, when a prompt is evaluated, then the judge analyzes complexity, privacy sensitivity, and quality requirements to recommend local or cloud routing. ✅
+- Given a simple low-complexity prompt, when the judge analyzes it, then it recommends local routing with high confidence. ✅
+- Given a complex high-quality task, when the judge analyzes it, then it recommends cloud routing with reasoning about capability requirements. ✅
+- Given the judge service is unavailable or times out, when a routing decision is needed, then a deterministic heuristic fallback is used without blocking the request. ✅
+- Given judge confidence is below the configured threshold, when routing candidates are filtered, then the fallback strategy is applied. ✅
+- Given judge routing is disabled, when ExecutionOrchestrator initializes, then no judge is instantiated and routing proceeds with existing logic. ✅
+- Given coverage gates, when all judge code is added, then 100% statement and branch coverage is maintained. ✅
+
+| Task ID | Task | Sub-tasks | Priority | Points | Status |
+| --- | --- | --- | --- | --- | --- |
+| T19.1 | Add `ear_judge_enabled`, `ear_judge_model`, `ear_judge_confidence_threshold` to `EARConfig` | Optional env vars; default disabled; default model `llama3.2`; default threshold 0.6 | P1 | 1 | `[x]` |
+| T19.2 | Implement `JudgeDecision` Pydantic model | Include `preference` (local/cloud), `confidence`, `reasoning`, `complexity/privacy/quality_score` fields | P1 | 1 | `[x]` |
+| T19.3 | Implement `JudgeRoutingClassifier` with async `decide()` method | Call local Ollama LLM with structured prompt; parse JSON response; validate decision schema | P1 | 2 | `[x]` |
+| T19.4 | Implement heuristic fallback strategy | When judge unavailable/timeout/low-confidence: analyze prompt length, PII signals, budget priority | P1 | 1 | `[x]` |
+| T19.5 | Integrate judge into `ExecutionOrchestrator` | Add `_determine_candidates_via_judge()` method; filter model candidates based on judge recommendation | P1 | 1 | `[x]` |
+| T19.6 | Add comprehensive tests for judge decision logic | Test local/cloud preferences, confidence scoring, fallback scenarios, HTTP errors, timeouts | P1 | 3 | `[x]` |
+| T19.7 | Add orchestrator integration tests for judge edge cases | Test judge disabled, judge enabled without Ollama, judge recommendation with no matching models | P1 | 2 | `[x]` |
+
+---
+
 ## WBS Summary
 
 | Metric | Value |
@@ -592,17 +627,17 @@ Track delivery using the status column for every item.
 | Total Features | 20 |
 | Total User Stories | 20 |
 | Total Tasks | 83 |
-| Total Story Points | 136 |
-| Completed Story Points | 122 |
+| Total Story Points | 144 |
+| Completed Story Points | 130 |
 | Remaining Story Points | 14 |
-| Current Version | 0.10.16 |
+| Current Version | 0.11.0 |
 | Last Updated | 2026-05-03 |
 
 ## Epics Completion Status
 
 | Status | Epics |
 | --- | --- |
-| ✅ Completed | E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E17, E18, E19 |
+| ✅ Completed | E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E17, E18, E19, E20 |
 | ⏳ Pending | E12, E13, E14, E15, E16 |
 
 ## Priority Order for Remaining Work

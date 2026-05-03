@@ -25,6 +25,7 @@
 16. Ollama Private Provider Integration (`[x]`)
 17. Live React Web Console (`[x]`)
 18. CLI Aliases and UX Polish (`[x]`)
+19. Judge-Based Intelligent Routing with Local LLM (`[x]`)
 
 ## Recommended Execution Order (Current State)
 1. E10 F9: implement true route-and-execute runtime (LiteLLM + fallback + real telemetry) `[x]`
@@ -33,7 +34,8 @@
 4. E17 F17: implement Ollama private provider for safety-routing of sensitive and blocked prompts `[x]`
 5. E18 F18: add live React/Vite routing console and one-click launcher scripts `[x]`
 6. E19 F19: add CLI command aliases and bare-`ear` default routing invocation `[x]`
-7. E12 F12: verify PyPI release artifacts (v0.10.16) and synchronize `master` → `main` `[ ]`
+7. E20 F20: implement judge-based intelligent routing using local Ollama LLM for context-aware local vs cloud decisions `[x]`
+8. E12 F12: verify PyPI release artifacts (v0.11.0) and synchronize `master` → `main` `[ ]`
 8. E14 F14: run live execution canary against real OpenRouter providers `[ ]`
 9. E13 F13: wire `DemoBackendService` API endpoints to `llm_explorer.html` frontend `[ ]`
 10. E15 F15: execute benchmark harness and publish precision/recall results `[ ]`
@@ -275,6 +277,24 @@
   - T18.1 Add short aliases for all CLI commands (1 pt) `[x]`
   - T18.2 Add default route command for bare `ear` invocation (1 pt) `[x]`
 
+### F20. Judge-Based Intelligent Routing with Local LLM
+- Story US-20 (8 pts) `[x]`: As a platform owner, I want intelligent judge-based routing that analyzes prompt characteristics to determine optimal local vs cloud execution.
+- Acceptance highlights:
+  - Local Ollama LLM judges prompt complexity, privacy sensitivity, and quality requirements.
+  - Recommends local or cloud routing with confidence scores and reasoning.
+  - Heuristic fallback when judge unavailable or low confidence.
+  - Integration with ExecutionOrchestrator for candidate filtering.
+  - Configuration via EAR_JUDGE_ENABLED, EAR_JUDGE_MODEL, EAR_JUDGE_CONFIDENCE_THRESHOLD.
+  - 100% test coverage maintained (342 tests passing).
+- Tasks:
+  - T19.1 Add judge configuration to EARConfig (1 pt) `[x]`
+  - T19.2 Implement JudgeDecision Pydantic model (1 pt) `[x]`
+  - T19.3 Implement JudgeRoutingClassifier with async decide() (2 pts) `[x]`
+  - T19.4 Implement heuristic fallback strategy (1 pt) `[x]`
+  - T19.5 Integrate judge into ExecutionOrchestrator (1 pt) `[x]`
+  - T19.6 Add comprehensive judge decision tests (3 pts) `[x]`
+  - T19.7 Add orchestrator integration edge case tests (2 pts) `[x]`
+
 ## Milestones
 
 ### M1. Foundation and Registry (Target: Week 1) `[x]`
@@ -340,11 +360,21 @@
   - Progress log visible in `llm_explorer.html`
   - Client disconnect handled gracefully
 
+### M10. Judge-Based Intelligent Routing (Target: Week 14) `[x]`
+- Scope: F20
+- Exit criteria:
+  - JudgeRoutingClassifier using local Ollama LLM for intelligent routing decisions
+  - Multi-dimensional analysis (complexity, privacy, quality) implemented
+  - Heuristic fallback for judge unavailability
+  - Orchestrator integration complete with candidate filtering
+  - 100% statement and branch coverage maintained (342 tests passing)
+  - Configuration controls via environment variables
+
 ## Capacity and Sizing Summary
-- Total story points: 136
-- Completed story points: 122
+- Total story points: 144
+- Completed story points: 130
 - Remaining story points: 14 (E12, E13, E14, E15, E16)
-- Current version: 0.10.16
+- Current version: 0.11.0
 - Last updated: 2026-05-03
 
 ## Risk Register

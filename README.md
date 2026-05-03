@@ -8,7 +8,7 @@ Efficient Agent Router (EAR) is a Python-first orchestration service that select
 - Protect sensitive input with prompt-injection and PII safeguards.
 - Provide a clean CLI first, then expose the same logic through MCP.
 
-## Current Delivery Status (v0.10.16)
+## Current Delivery Status (v0.11.0)
 
 | Epic | Description | Status |
 |---|---|---|
@@ -26,6 +26,7 @@ Efficient Agent Router (EAR) is a Python-first orchestration service that select
 | E17 | Ollama Private Provider Integration | ✅ Complete |
 | E18 | Live React Web Console | ✅ Complete |
 | E19 | CLI Aliases and UX Polish | ✅ Complete |
+| E20 | Judge-Based Intelligent Routing with Local LLM | ✅ Complete |
 | E12–E16 | Post-launch hardening (PyPI verify, canary, benchmarks, ADRs) | ⏳ Pending |
 
 ## Current Delivery Strategy
@@ -36,7 +37,8 @@ Efficient Agent Router (EAR) is a Python-first orchestration service that select
 5. Ship interactive leadership demo with value storytelling. ✅
 6. Add Ollama private provider for on-premise safety routing. ✅
 7. Ship live React web console for developer-facing routing visualization. ✅
-8. Post-launch: verify PyPI release, run live canary, publish benchmarks, backfill ADRs.
+8. Add judge-based intelligent routing with local LLM for context-aware decisions. ✅
+9. Post-launch: verify PyPI release, run live canary, publish benchmarks, backfill ADRs.
 
 ## Tech Stack
 - Python 3.12+
@@ -63,6 +65,7 @@ src/
     executor.py          # LLMExecutor, OllamaExecutor, CompositeExecutor
     orchestrator.py      # Unified execution orchestration pipeline
     intent.py            # Advanced intent classifier (embedding + heuristic fallback)
+    judge.py             # Judge-based routing classifier using local LLM
     evaluation.py        # Evaluation harness and benchmark suite
     cli.py               # Typer CLI: route, inspect-models, stats (+ aliases)
     mcp_server.py        # MCP stdio transport and tool/resource handlers
@@ -80,6 +83,7 @@ tests/
   test_executor.py
   test_orchestrator.py
   test_intent.py
+  test_judge.py
   test_evaluation.py
   test_cli.py
   test_mcp_server.py
@@ -227,6 +231,13 @@ OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_ENABLED=true
 ```
 
+Optional judge-based intelligent routing:
+```bash
+EAR_JUDGE_ENABLED=true
+EAR_JUDGE_MODEL=llama3.2
+EAR_JUDGE_CONFIDENCE_THRESHOLD=0.6
+```
+
 Recommended local setup:
 1. Create and activate virtual environment: `python -m venv .venv && .venv\Scripts\activate`
 2. Install: `pip install -e .[dev]`
@@ -277,10 +288,35 @@ Workspace configuration is stored in .vscode/mcp.json.
 - M9: React console and CLI UX hardening ✅
 - M7: Post-launch hardening (PyPI verify, canary, benchmarks, ADRs) ⏳ Pending
 
+## Judge-Based Intelligent Routing
+
+EAR can use a local Ollama LLM as an agentic judge to analyze prompts and make intelligent routing decisions between local and cloud models.
+
+Configuration:
+```bash
+export EAR_JUDGE_ENABLED=true
+export EAR_JUDGE_MODEL=llama3.2
+export EAR_JUDGE_CONFIDENCE_THRESHOLD=0.6
+```
+
+Behavior:
+- Judge analyzes prompt complexity, privacy sensitivity, and quality requirements.
+- Returns routing preference (local/cloud) with confidence score and reasoning.
+- Multi-dimensional scoring: complexity_score, privacy_score, quality_score.
+- Heuristic fallback when judge is unavailable, times out, or returns low confidence.
+- Integration with ExecutionOrchestrator filters model candidates based on judge recommendation.
+- Requires Ollama to be running locally for judge to function.
+
+Use cases:
+- Simple queries → local routing for cost efficiency
+- Complex analysis → cloud routing for advanced capabilities
+- Privacy-sensitive data → automatic local model preference
+- Budget-conscious requests → intelligent cost optimization
+
 ## Tests
 
-- 291 tests across 16 test modules
-- Enforced 100% statement and branch coverage for all routing, guardrail, and execution logic
+- 342 tests across 17 test modules
+- Enforced 100% statement and branch coverage for all routing, guardrail, judge, and execution logic
 - All tests run with mocked external dependencies
 
 ```bash
